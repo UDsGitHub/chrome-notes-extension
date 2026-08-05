@@ -12,6 +12,9 @@ const notesList = document.querySelector(
 const notesEmpty = document.querySelector(
   ".notes-empty",
 ) as types.ElementWithHidden;
+const cancelEditBtn = document.querySelector(
+  ".cancel-edit-btn",
+) as types.ElementWithHidden;
 let activeNoteId: string | null = null;
 
 const syncEmptyState = () => {
@@ -136,11 +139,10 @@ const deleteNote = async () => {
       throw new Error("Missing active note id");
     }
 
-    const notes = await getCachedNotes()
+    const notes = await getCachedNotes();
     if (!notes) {
       throw new Error("Local storage does not contain notes record");
     }
-
 
     delete notes[activeNoteId];
     await chrome.storage.local.set({
@@ -159,10 +161,13 @@ const cleanUp = () => {
   if (notesInput) {
     notesInput.value = "";
   }
-  if (!!activeNoteId) {
+  if (activeNoteId) {
     const activeNote = document.getElementById(activeNoteId);
     activeNote?.classList.remove("editing");
     activeNoteId = null;
+  }
+  if (cancelEditBtn) {
+    cancelEditBtn.setAttribute("hidden", "true");
   }
 };
 
@@ -204,20 +209,30 @@ notesList.addEventListener("click", (e) => {
       activeNote?.classList.remove("editing");
     }
 
+    if (cancelEditBtn) {
+      cancelEditBtn.removeAttribute("hidden");
+    }
+
     const noteId = listItem.id;
     const noteContent = listItem.querySelector(".notes-content")?.textContent;
     if (!noteContent) return;
     listItem.classList.add("editing");
     activeNoteId = noteId;
     notesInput.value = noteContent;
+    notesInput.focus()
 
     return;
   }
 });
 
+cancelEditBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  cleanUp();
+});
+
 (async function loadNotes() {
   try {
-    const notes = await getCachedNotes()
+    const notes = await getCachedNotes();
 
     if (notes) {
       Object.entries(notes).forEach((entry) => {

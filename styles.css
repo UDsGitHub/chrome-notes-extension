@@ -2,6 +2,7 @@
   color-scheme: light dark;
   --bg-color: light-dark(whitesmoke, #111);
   --primary-text-color: light-dark(white, black);
+  --primary-text-color-inverse: light-dark(black, white);
   --text-color: light-dark(black, #888);
   --text-hover-color: light-dark(black, white);
   --accent-color: light-dark(#444, #444);
@@ -37,13 +38,9 @@ main {
   gap: 8px;
 }
 
-form {
-  margin: 0;
-}
-
 h2 {
-    margin: 0;
-    margin-bottom: 14px;
+  margin: 0;
+  margin-bottom: 14px;
 }
 
 .notes-empty {
@@ -71,7 +68,8 @@ h2 {
 }
 
 .notes-list[hidden],
-.notes-empty[hidden] {
+.notes-empty[hidden],
+.cancel-edit-btn[hidden] {
   display: none;
 }
 
@@ -82,10 +80,16 @@ h2 {
   padding: 8px;
   display: flex;
   align-items: center;
+  transition: 180ms;
 }
 
-.notes-list-item .editing {
-    outline: 4px solid #fef3c680;
+.notes-list-item:hover {
+    background-color: rgba(245,245,245,0.10);
+}
+
+.notes-list-item.editing {
+  outline: 4px solid rgba(83, 234, 253, 0.75);
+  background-color: rgba(245,245,245,0.10);
 }
 
 .notes-content {
@@ -121,12 +125,16 @@ h2 {
   height: 16px;
 }
 
+.notes-form {
+  margin: 0;
+  padding-top: 20px;
+}
+
 .notes-input-wrapper {
   margin-top: auto;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 20px;
 }
 
 #notes-input {
@@ -156,4 +164,21 @@ h2 {
   height: 40px;
   padding: 0 12px;
   cursor: pointer;
+}
+
+.cancel-edit-btn {
+    font-size: 12px;
+    color: var(--primary-text-color-inverse);
+    background-color: transparent;
+    border: 1px solid var(--accent-color);
+    padding: 4px 8px;
+    margin-left: 8px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    transition: 180ms;
+    cursor: pointer;
+}
+
+.cancel-edit-btn:hover {
+    background-color: rgba(245,245,245,0.10);
 }
