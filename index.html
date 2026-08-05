@@ -1,0 +1,42 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header><h2>Notes</h2></header>
+    <main>
+      <p class="notes-empty">No notes yet. Add one below.</p>
+      <ul class="notes-list" hidden></ul>
+      <form id="notes-form">
+        <div class="notes-input-wrapper">
+          <textarea
+            id="notes-input"
+            name="notes-input"
+            placeholder="Enter your note..."
+            required
+          ></textarea>
+          <button id="notes-input-submit">
+            <svg
+              class="icon"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1"
+                d="m9 5 7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </main>
+  </body>
+  <script src="script.js"></script>
+</html>
