@@ -1,5 +1,5 @@
 {
-  "name": "chrome-notes-extension",
+  "name": "clip-notes",
   "version": "1.0.0",
   "description": "A simple chrome extension for taking notes",
   "main": "script.js",
