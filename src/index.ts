@@ -1,39 +1,53 @@
+import type types = require("./types");
+
 const NOTES_EXTENSION_LOCAL_STORAGE_KEY = "notes-ext-ls";
 
 const form = document.getElementById("notes-form");
-const notesInput = document.getElementById("notes-input");
-const notesList = document.querySelector(".notes-list");
-const notesEmpty = document.querySelector(".notes-empty");
-let activeNoteId = null;
+const notesInput = document.getElementById(
+  "notes-input",
+) as HTMLTextAreaElement;
+const notesList = document.querySelector(
+  ".notes-list",
+) as types.ElementWithHidden;
+const notesEmpty = document.querySelector(
+  ".notes-empty",
+) as types.ElementWithHidden;
+let activeNoteId: string | null = null;
 
 const syncEmptyState = () => {
-  const hasNotes = notesList.children.length > 0;
-  notesEmpty.hidden = hasNotes;
-  notesList.hidden = !hasNotes;
+  if (notesList && notesEmpty) {
+    const hasNotes = notesList.children.length > 0;
+    notesEmpty.hidden = hasNotes;
+    notesList.hidden = !hasNotes;
+  }
 };
 
-const updateLocalStorage = (note) => {
+const getCachedNotes = async (): Promise<types.NotesList | null> => {
+  const result = await chrome.storage.local.get(
+    NOTES_EXTENSION_LOCAL_STORAGE_KEY,
+  );
+  const cachedNotes = result[NOTES_EXTENSION_LOCAL_STORAGE_KEY];
+
+  if (!cachedNotes) {
+    return null;
+  }
+
+  return cachedNotes as types.NotesList;
+};
+
+const updateLocalStorage = async (note: types.Note) => {
   try {
-    const cachedNotes = localStorage.getItem(NOTES_EXTENSION_LOCAL_STORAGE_KEY);
-    if (!cachedNotes) {
-      const notes = JSON.stringify({
-        [note.id]: note.content,
-      });
-      localStorage.setItem(NOTES_EXTENSION_LOCAL_STORAGE_KEY, notes);
-    } else {
-      const notesList = JSON.parse(cachedNotes);
-      notesList[note.id] = note.content;
-      localStorage.setItem(
-        NOTES_EXTENSION_LOCAL_STORAGE_KEY,
-        JSON.stringify(notesList),
-      );
-    }
+    const notes = (await getCachedNotes()) ?? {};
+    notes[note.id] = note.content;
+    await chrome.storage.local.set({
+      [NOTES_EXTENSION_LOCAL_STORAGE_KEY]: notes,
+    });
   } catch (error) {
     console.warn("Failed to update local storage: ", error);
   }
 };
 
-const createNoteElement = (note) => {
+const createNoteElement = (note: types.Note) => {
   const noteElement = document.createElement("li");
 
   noteElement.id = note.id;
@@ -78,17 +92,24 @@ const createNoteElement = (note) => {
         </svg>
     </button>
   `;
-  noteElement.querySelector(".notes-content").textContent = note.content;
-  notesList.appendChild(noteElement);
-  syncEmptyState();
+
+  const notesContent = noteElement.querySelector(".notes-content");
+  if (notesContent) {
+    notesContent.textContent = note.content;
+    notesList.appendChild(noteElement);
+    syncEmptyState();
+  }
 };
 
-const updateNoteElement = (note) => {
+const updateNoteElement = (note: types.Note) => {
   const noteElement = document.getElementById(note.id);
-  noteElement.querySelector(".notes-content").textContent = note.content;
+  const notesContent = noteElement?.querySelector(".notes-content");
+  if (notesContent) {
+    notesContent.textContent = note.content;
+  }
 };
 
-const addNote = (value) => {
+const addNote = (value: string) => {
   const id = activeNoteId ?? `note-${crypto.randomUUID()}`;
   const note = {
     id,
@@ -103,36 +124,41 @@ const addNote = (value) => {
   }
 };
 
-const copyNote = (value) => {
+const copyNote = (value: string) => {
   navigator.clipboard.writeText(value).catch((err) => {
     console.error("Failed to copy text: ", err);
   });
 };
 
-const deleteNote = () => {
+const deleteNote = async () => {
   try {
-    const cachedNotes = localStorage.getItem(NOTES_EXTENSION_LOCAL_STORAGE_KEY);
-    if (!cachedNotes) {
+    if (!activeNoteId) {
+      throw new Error("Missing active note id");
+    }
+
+    const notes = await getCachedNotes()
+    if (!notes) {
       throw new Error("Local storage does not contain notes record");
     }
 
-    const notesList = JSON.parse(cachedNotes);
-    delete notesList[activeNoteId];
-    localStorage.setItem(
-      NOTES_EXTENSION_LOCAL_STORAGE_KEY,
-      JSON.stringify(notesList),
-    );
+
+    delete notes[activeNoteId];
+    await chrome.storage.local.set({
+      [NOTES_EXTENSION_LOCAL_STORAGE_KEY]: notes,
+    });
+
+    document.getElementById(activeNoteId)?.remove();
+    activeNoteId = null;
+    syncEmptyState();
   } catch (error) {
     console.warn("Failed to delete note: ", error);
   }
-
-  document.getElementById(activeNoteId).remove();
-  activeNoteId = null;
-  syncEmptyState();
 };
 
 const cleanUp = () => {
-  notesInput.value = "";
+  if (notesInput) {
+    notesInput.value = "";
+  }
   if (!!activeNoteId) {
     const activeNote = document.getElementById(activeNoteId);
     activeNote?.classList.remove("editing");
@@ -140,7 +166,7 @@ const cleanUp = () => {
   }
 };
 
-form.addEventListener("submit", (e) => {
+form?.addEventListener("submit", (e) => {
   e.preventDefault();
 
   const noteInputValue = notesInput.value.trim();
@@ -151,10 +177,12 @@ form.addEventListener("submit", (e) => {
 });
 
 notesList.addEventListener("click", (e) => {
+  if (!(e.target instanceof Element)) return;
+
   const copyBtn = e.target.closest(".copy-btn");
   if (copyBtn) {
-    const noteContent = copyBtn.previousElementSibling.textContent;
-    copyNote(noteContent);
+    const noteContent = copyBtn.previousElementSibling?.textContent;
+    if (noteContent) copyNote(noteContent);
 
     return;
   }
@@ -162,6 +190,7 @@ notesList.addEventListener("click", (e) => {
   const deleteBtn = e.target.closest(".delete-btn");
   if (deleteBtn) {
     const listItem = deleteBtn.closest("li");
+    if (!listItem) return;
     activeNoteId = listItem.id;
     deleteNote();
 
@@ -171,11 +200,13 @@ notesList.addEventListener("click", (e) => {
   const listItem = e.target.closest(".notes-list-item");
   if (listItem) {
     if (activeNoteId) {
-      document.getElementById(activeNoteId).classList.remove("editing");
+      const activeNote = document.getElementById(activeNoteId);
+      activeNote?.classList.remove("editing");
     }
 
     const noteId = listItem.id;
-    const noteContent = listItem.querySelector(".notes-content").textContent;
+    const noteContent = listItem.querySelector(".notes-content")?.textContent;
+    if (!noteContent) return;
     listItem.classList.add("editing");
     activeNoteId = noteId;
     notesInput.value = noteContent;
@@ -184,19 +215,17 @@ notesList.addEventListener("click", (e) => {
   }
 });
 
-(function loadNotes() {
+(async function loadNotes() {
   try {
-    const cachedNotes = localStorage.getItem(NOTES_EXTENSION_LOCAL_STORAGE_KEY);
+    const notes = await getCachedNotes()
 
-    if (cachedNotes) {
-      const notes = JSON.parse(cachedNotes);
+    if (notes) {
       Object.entries(notes).forEach((entry) => {
         const note = {
           id: entry[0],
           content: entry[1],
         };
 
-        console.log(note)
         createNoteElement(note);
       });
     }

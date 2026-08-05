@@ -151,9 +151,9 @@ h2 {
 #notes-input-submit {
   background-color: var(--primary-btn);
   border: none;
-  border-radius: 16px;
+  border-radius: 20px;
   color: var(--primary-text-color);
-  height: 32px;
+  height: 40px;
   padding: 0 12px;
   cursor: pointer;
 }

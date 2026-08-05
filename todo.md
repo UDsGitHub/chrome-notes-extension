@@ -1,3 +1,3 @@
-- type note into input field, submit and note is saved to local storage and listed on screen
-- click edit on note and it is set as value of input field and submission would edit note.
-- click delete and note is deleted from local storage
+- [x] type note into input field, submit and note is saved to local storage and listed on screen
+- [x] click edit on note and it is set as value of input field and submission would edit note.
+- [x] click delete and note is deleted from local storage
