@@ -1,7 +1,3 @@
-export type ElementWithHidden = Element & {
-  hidden: boolean;
-};
-
 export type Note = {
     id: string;
     content: string;

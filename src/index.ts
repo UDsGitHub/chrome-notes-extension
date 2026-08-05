@@ -1,20 +1,18 @@
-import type types = require("./types");
-
-const NOTES_EXTENSION_LOCAL_STORAGE_KEY = "notes-ext-ls";
+import { NOTES_EXTENSION_LOCAL_STORAGE_KEY } from "./constants";
+import { getNotes, saveNote } from "./storage";
+import type { Note, NotesList } from "./types";
 
 const form = document.getElementById("notes-form");
 const notesInput = document.getElementById(
   "notes-input",
 ) as HTMLTextAreaElement;
-const notesList = document.querySelector(
-  ".notes-list",
-) as types.ElementWithHidden;
-const notesEmpty = document.querySelector(
-  ".notes-empty",
-) as types.ElementWithHidden;
-const cancelEditBtn = document.querySelector(
-  ".cancel-edit-btn",
-) as types.ElementWithHidden;
+const notesList = document.querySelector<HTMLElement>(".notes-list");
+const notesListItemTemplate = document.getElementById(
+  "notes-list-item-template",
+) as HTMLTemplateElement;
+const notesEmpty = document.querySelector<HTMLElement>(".notes-empty");
+const cancelEditBtn = document.querySelector<HTMLElement>(".cancel-edit-btn");
+
 let activeNoteId: string | null = null;
 
 const syncEmptyState = () => {
@@ -25,86 +23,19 @@ const syncEmptyState = () => {
   }
 };
 
-const getCachedNotes = async (): Promise<types.NotesList | null> => {
-  const result = await chrome.storage.local.get(
-    NOTES_EXTENSION_LOCAL_STORAGE_KEY,
-  );
-  const cachedNotes = result[NOTES_EXTENSION_LOCAL_STORAGE_KEY];
-
-  if (!cachedNotes) {
-    return null;
-  }
-
-  return cachedNotes as types.NotesList;
-};
-
-const updateLocalStorage = async (note: types.Note) => {
-  try {
-    const notes = (await getCachedNotes()) ?? {};
-    notes[note.id] = note.content;
-    await chrome.storage.local.set({
-      [NOTES_EXTENSION_LOCAL_STORAGE_KEY]: notes,
-    });
-  } catch (error) {
-    console.warn("Failed to update local storage: ", error);
-  }
-};
-
-const createNoteElement = (note: types.Note) => {
-  const noteElement = document.createElement("li");
-
-  noteElement.id = note.id;
-  noteElement.className = "notes-list-item";
-  noteElement.innerHTML = `
-    <p class="notes-content"></p>
-    <button class="notes-actions-button copy-btn">
-        <svg
-            class="icon"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-        >
-            <path
-            stroke="currentColor"
-            stroke-linejoin="round"
-            stroke-width="1"
-            d="M9 8v3a1 1 0 0 1-1 1H5m11 4h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v1m4 3v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7.13a1 1 0 0 1 .24-.65L7.7 8.35A1 1 0 0 1 8.46 8H13a1 1 0 0 1 1 1Z"
-            />
-        </svg>
-    </button>
-    <button class="notes-actions-button delete-btn">
-        <svg
-            class="icon"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-        >
-            <path
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1"
-            d="M6 18 17.94 6M18 18 6.06 6"
-            />
-        </svg>
-    </button>
-  `;
-
+const createNoteElement = (note: Note) => {
+  const noteElement = notesListItemTemplate.content.cloneNode(
+    true,
+  ) as DocumentFragment;
   const notesContent = noteElement.querySelector(".notes-content");
   if (notesContent) {
     notesContent.textContent = note.content;
-    notesList.appendChild(noteElement);
+    notesList?.appendChild(noteElement);
     syncEmptyState();
   }
 };
 
-const updateNoteElement = (note: types.Note) => {
+const updateNoteElement = (note: Note) => {
   const noteElement = document.getElementById(note.id);
   const notesContent = noteElement?.querySelector(".notes-content");
   if (notesContent) {
@@ -112,14 +43,14 @@ const updateNoteElement = (note: types.Note) => {
   }
 };
 
-const addNote = (value: string) => {
+const addNote = async (value: string) => {
   const id = activeNoteId ?? `note-${crypto.randomUUID()}`;
   const note = {
     id,
     content: value,
   };
 
-  updateLocalStorage(note);
+  await saveNote(note);
   if (activeNoteId) {
     updateNoteElement(note);
   } else {
@@ -133,24 +64,19 @@ const copyNote = (value: string) => {
   });
 };
 
-const deleteNote = async () => {
+const deleteNote = async (noteId: string) => {
   try {
-    if (!activeNoteId) {
-      throw new Error("Missing active note id");
-    }
-
-    const notes = await getCachedNotes();
+    const notes = await getNotes();
     if (!notes) {
       throw new Error("Local storage does not contain notes record");
     }
 
-    delete notes[activeNoteId];
+    delete notes[noteId];
     await chrome.storage.local.set({
       [NOTES_EXTENSION_LOCAL_STORAGE_KEY]: notes,
     });
 
-    document.getElementById(activeNoteId)?.remove();
-    activeNoteId = null;
+    document.getElementById(noteId)?.remove();
     syncEmptyState();
   } catch (error) {
     console.warn("Failed to delete note: ", error);
@@ -181,7 +107,7 @@ form?.addEventListener("submit", (e) => {
   }
 });
 
-notesList.addEventListener("click", (e) => {
+notesList?.addEventListener("click", (e) => {
   if (!(e.target instanceof Element)) return;
 
   const copyBtn = e.target.closest(".copy-btn");
@@ -196,8 +122,7 @@ notesList.addEventListener("click", (e) => {
   if (deleteBtn) {
     const listItem = deleteBtn.closest("li");
     if (!listItem) return;
-    activeNoteId = listItem.id;
-    deleteNote();
+    deleteNote(listItem.id);
 
     return;
   }
@@ -219,20 +144,20 @@ notesList.addEventListener("click", (e) => {
     listItem.classList.add("editing");
     activeNoteId = noteId;
     notesInput.value = noteContent;
-    notesInput.focus()
+    notesInput.focus();
 
     return;
   }
 });
 
-cancelEditBtn.addEventListener("click", (e) => {
+cancelEditBtn?.addEventListener("click", (e) => {
   e.preventDefault();
   cleanUp();
 });
 
 (async function loadNotes() {
   try {
-    const notes = await getCachedNotes();
+    const notes = await getNotes();
 
     if (notes) {
       Object.entries(notes).forEach((entry) => {

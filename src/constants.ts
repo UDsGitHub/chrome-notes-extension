@@ -1,0 +1,1 @@
+export const NOTES_EXTENSION_LOCAL_STORAGE_KEY = "notes-ext-ls";
