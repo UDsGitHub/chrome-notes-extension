@@ -1,13 +1,20 @@
 {
   "name": "Notes Extension",
   "description": "Take simple notes in your browser",
-  "version": "1.0",
+  "version": "1.0.0",
   "manifest_version": 3,
   "action": {
-    "default_popup": "index.html",
-    "default_icon": "logo.png"
+    "default_icon": "public/assets/logo.png"
   },
-  "permissions": [
-    "storage"
-  ]
+  "icons": {
+    "16": "public/assets/logo.png"
+  },
+  "side_panel": {
+    "default_path": "public/index.html"
+  },
+  "background": {
+    "service_worker": "dist/service-worker.js",
+    "type": "module"
+  },
+  "permissions": ["sidePanel", "contextMenus", "storage"]
 }

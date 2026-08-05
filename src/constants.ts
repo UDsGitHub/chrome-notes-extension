@@ -1,1 +1,3 @@
-export const NOTES_EXTENSION_LOCAL_STORAGE_KEY = "notes-ext-ls";
+export const CONTEXT_MENU_ID = "clip-notes";
+export const NOTES_STORAGE_KEY = "notes";
+export const PENDING_NOTE_KEY = "pending-note";
