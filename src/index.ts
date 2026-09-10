@@ -44,7 +44,8 @@ notesList?.addEventListener("click", async (e) => {
 
   const copyBtn = e.target.closest(".copy-btn");
   if (copyBtn) {
-    const noteContent = copyBtn.previousElementSibling?.textContent;
+    const noteContent = copyBtn.nextElementSibling?.textContent;
+    console.log('content to be copied: ', noteContent)
     if (noteContent) actions.copyNote(noteContent);
 
     return;

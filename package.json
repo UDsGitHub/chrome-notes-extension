@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +17,8 @@
   "devDependencies": {
     "chrome-types": "^0.1.436",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "husky": "^9.1.7"
   }
 }
