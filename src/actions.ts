@@ -5,7 +5,6 @@ import {
   syncPendingNote,
 } from "./storage.js";
 import type { Note } from "./types.js";
-
 export class NoteActions {
   notesList: HTMLElement;
   notesEmpty: HTMLElement;
