@@ -90,7 +90,7 @@ export class NoteActions {
 
     if (listElement) {
       listElement.id = note.id;
-      const notesContent = template.querySelector(".notes-content");
+      const notesContent = template.querySelector(".notes-list-item__content");
       if (notesContent) {
         notesContent.textContent = note.content;
         this.notesList.appendChild(template);
@@ -101,7 +101,9 @@ export class NoteActions {
 
   #updateNoteElement(note: Note) {
     const noteElement = document.getElementById(note.id);
-    const notesContent = noteElement?.querySelector(".notes-content");
+    const notesContent = noteElement?.querySelector(
+      ".notes-list-item__content",
+    );
     if (notesContent) {
       notesContent.textContent = note.content;
     }

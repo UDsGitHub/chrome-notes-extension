@@ -1,10 +1,13 @@
 :root {
   color-scheme: light dark;
   --bg-color: light-dark(whitesmoke, #111);
+  --bg-color-inverse: light-dark(#111, whitesmoke);
   --primary-text-color: light-dark(white, black);
   --primary-text-color-inverse: light-dark(black, white);
   --text-color: light-dark(black, #888);
+  --text-color-inverse: light-dark(#888, black);
   --text-hover-color: light-dark(black, white);
+  --text-hover-color-inverse: light-dark(white, black);
   --accent-color: light-dark(#444, #444);
   --primary-btn: light-dark(black, rgb(245, 245, 245));
 }
@@ -15,7 +18,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
 }
 
@@ -65,7 +69,7 @@ h2 {
   padding-right: 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 28px;
   overflow-y: auto;
 }
 
@@ -76,6 +80,7 @@ h2 {
 }
 
 .notes-list-item {
+  position: relative;
   background-color: transparent;
   border: 1px solid var(--accent-color);
   border-radius: 12px;
@@ -83,24 +88,25 @@ h2 {
   display: flex;
   align-items: center;
   transition: 180ms;
+  cursor: pointer;
 }
 
 .notes-list-item:hover {
-    background-color: rgba(245,245,245,0.10);
+  background-color: rgba(245, 245, 245, 0.1);
 }
 
 .notes-list-item.editing {
   outline: 4px solid rgba(83, 234, 253, 0.75);
-  background-color: rgba(245,245,245,0.10);
+  background-color: rgba(245, 245, 245, 0.1);
 }
 
-.notes-content {
+.notes-list-item__content {
   flex-grow: 1;
   color: var(--text-color);
   width: 100%;
 }
 
-.notes-content-truncate {
+.notes-list-item__content-truncate {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -111,14 +117,15 @@ h2 {
   align-items: center;
 }
 
-.notes-actions-button {
+.notes-list-item__action {
   background-color: transparent;
   border: none;
   color: var(--text-color);
   cursor: pointer;
+  padding: 0 2px;
 }
 
-.notes-actions-button:hover {
+.notes-list-item__action:hover {
   color: var(--text-hover-color);
 }
 
@@ -169,18 +176,48 @@ h2 {
 }
 
 .cancel-edit-btn {
-    font-size: 12px;
-    color: var(--primary-text-color-inverse);
-    background-color: transparent;
-    border: 1px solid var(--accent-color);
-    padding: 4px 8px;
-    margin-left: 8px;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    transition: 180ms;
-    cursor: pointer;
+  font-size: 12px;
+  color: var(--primary-text-color-inverse);
+  background-color: transparent;
+  border: 1px solid var(--accent-color);
+  padding: 4px 8px;
+  margin-left: 8px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  transition: 180ms;
+  cursor: pointer;
 }
 
 .cancel-edit-btn:hover {
-    background-color: rgba(245,245,245,0.10);
+  background-color: rgba(245, 245, 245, 0.1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    bottom: -28px;
+  }
+  to {
+    opacity: 1;
+    bottom: -20px;
+  }
+}
+
+.notes-list-item__indicator {
+  position: absolute;
+  left: 0;
+  bottom: -20px;
+  background-color: var(--bg-color-inverse);
+  color: var(--text-color-inverse);
+  border-radius: 6px;
+  font-size: 0.95em;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  padding-inline: 0.4rem;
+  opacity: 0;
+}
+
+.notes-list-item__indicator.visible {
+  animation: fadeIn 1500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

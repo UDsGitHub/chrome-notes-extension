@@ -7,7 +7,7 @@ const notesInput = document.getElementById(
 ) as HTMLTextAreaElement;
 const notesList = document.querySelector(".notes-list") as HTMLElement;
 const notesTemplate = document.getElementById(
-  "notes-list-item-template",
+  "notes-list-item__template",
 ) as HTMLTemplateElement;
 const notesEmpty = document.querySelector(".notes-empty") as HTMLElement;
 const cancelEditBtn = document.querySelector<HTMLElement>(".cancel-edit-btn");
@@ -29,12 +29,36 @@ const cleanUp = () => {
   }
 };
 
+const showIndicator = (
+  listItem: Element,
+  textContent: string,
+  duration: number = 1500,
+) => {
+  const indicator = listItem.querySelector(".notes-list-item__indicator");
+  console.log(listItem, indicator);
+  if (indicator) {
+    indicator.textContent = textContent;
+    indicator.classList.add("visible");
+    const timer = setTimeout(() => {
+      indicator.classList.remove("visible");
+      clearTimeout(timer);
+    }, duration);
+  }
+};
+
 form?.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const noteInputValue = notesInput.value.trim();
   if (noteInputValue !== "") {
     await actions.addNote(noteInputValue, activeNoteId);
+    if (activeNoteId) {
+      const listItem = document.getElementById(activeNoteId);
+      console.log(listItem)
+      if (listItem) {
+        showIndicator(listItem, "Updated");
+      }
+    }
     cleanUp();
   }
 });
@@ -42,15 +66,34 @@ form?.addEventListener("submit", async (e) => {
 notesList?.addEventListener("click", async (e) => {
   if (!(e.target instanceof Element)) return;
 
-  const copyBtn = e.target.closest(".copy-btn");
-  if (copyBtn) {
-    const noteContent = copyBtn.nextElementSibling?.textContent;
-    console.log('content to be copied: ', noteContent)
-    if (noteContent) actions.copyNote(noteContent);
+  // EDIT NOTE
+  const editBtn = e.target.closest(".edit-btn");
+  if (editBtn) {
+    const listItem = e.target.closest(".notes-list-item");
+    if (listItem) {
+      if (activeNoteId) {
+        const activeNote = document.getElementById(activeNoteId);
+        activeNote?.classList.remove("editing");
+      }
 
-    return;
+      if (cancelEditBtn) {
+        cancelEditBtn.hidden = false;
+      }
+
+      const noteContent = listItem.querySelector(
+        ".notes-list-item__content",
+      )?.textContent;
+      if (!noteContent) return;
+      listItem.classList.add("editing");
+      activeNoteId = listItem.id;
+      notesInput.value = noteContent;
+      notesInput.focus();
+
+      return;
+    }
   }
 
+  // DELETE NOTE
   const deleteBtn = e.target.closest(".delete-btn");
   if (deleteBtn) {
     const listItem = deleteBtn.closest("li");
@@ -60,24 +103,14 @@ notesList?.addEventListener("click", async (e) => {
     return;
   }
 
+  // COPY NOTE
   const listItem = e.target.closest(".notes-list-item");
   if (listItem) {
-    if (activeNoteId) {
-      const activeNote = document.getElementById(activeNoteId);
-      activeNote?.classList.remove("editing");
-    }
-
-    if (cancelEditBtn) {
-      cancelEditBtn.hidden = false;
-    }
-
-    const noteContent = listItem.querySelector(".notes-content")?.textContent;
-    if (!noteContent) return;
-    listItem.classList.add("editing");
-    activeNoteId = listItem.id;
-    notesInput.value = noteContent;
-    notesInput.focus();
-
+    const noteContent = listItem.querySelector(
+      ".notes-list-item__content",
+    )?.textContent;
+    if (noteContent) actions.copyNote(noteContent);
+    showIndicator(listItem, "Copied");
     return;
   }
 });
