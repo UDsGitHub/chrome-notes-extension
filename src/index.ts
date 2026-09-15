@@ -29,21 +29,29 @@ const cleanUp = () => {
   }
 };
 
+const indicatorTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+
 const showIndicator = (
   listItem: Element,
   textContent: string,
   duration: number = 1500,
 ) => {
   const indicator = listItem.querySelector(".notes-list-item__indicator");
-  console.log(listItem, indicator);
-  if (indicator) {
-    indicator.textContent = textContent;
-    indicator.classList.add("visible");
-    const timer = setTimeout(() => {
-      indicator.classList.remove("visible");
-      clearTimeout(timer);
-    }, duration);
-  }
+  if (!(indicator instanceof HTMLElement)) return;
+
+  const existingTimer = indicatorTimers.get(indicator);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  indicator.textContent = textContent;
+  indicator.classList.remove("visible");
+  void indicator.offsetWidth;
+  indicator.classList.add("visible");
+
+  const timer = setTimeout(() => {
+    indicator.classList.remove("visible");
+    indicatorTimers.delete(indicator);
+  }, duration);
+  indicatorTimers.set(indicator, timer);
 };
 
 form?.addEventListener("submit", async (e) => {
@@ -54,7 +62,6 @@ form?.addEventListener("submit", async (e) => {
     await actions.addNote(noteInputValue, activeNoteId);
     if (activeNoteId) {
       const listItem = document.getElementById(activeNoteId);
-      console.log(listItem)
       if (listItem) {
         showIndicator(listItem, "Updated");
       }

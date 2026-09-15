@@ -192,21 +192,28 @@ h2 {
   background-color: rgba(245, 245, 245, 0.1);
 }
 
-@keyframes fadeIn {
-  from {
+@keyframes fadeInOut {
+  0% {
     opacity: 0;
-    bottom: -28px;
   }
-  to {
+  15% {
     opacity: 1;
-    bottom: -20px;
+    transform: translateY(0);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
 .notes-list-item__indicator {
   position: absolute;
   left: 0;
-  bottom: -20px;
+  bottom: -22px;
   background-color: var(--bg-color-inverse);
   color: var(--text-color-inverse);
   border-radius: 6px;
@@ -216,8 +223,10 @@ h2 {
   align-items: center;
   padding-inline: 0.4rem;
   opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
 }
 
 .notes-list-item__indicator.visible {
-  animation: fadeIn 1500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: fadeInOut 1.5s ease-in-out forwards;
 }
