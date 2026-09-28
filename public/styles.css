@@ -85,6 +85,7 @@ h2 {
   border: 1px solid var(--accent-color);
   border-radius: 12px;
   padding: 8px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   transition: 180ms;
@@ -100,10 +101,12 @@ h2 {
   background-color: rgba(245, 245, 245, 0.1);
 }
 
-.notes-list-item__content {
+.notes-list-item__contentWrapper {
   flex-grow: 1;
+}
+
+.notes-list-item__content {
   color: var(--text-color);
-  width: 100%;
 }
 
 .notes-list-item__content-truncate {
@@ -230,4 +233,20 @@ h2 {
 
 .notes-list-item__indicator.visible {
   animation: fadeInOut 1.5s ease-in-out forwards;
+}
+
+.notes-list-item__truncateToggle {
+  display: none;
+}
+
+.notes-list-item__truncateToggle.visible {
+  display: inline-block;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.95em;
+}
+
+.notes-list-item__truncateToggle:hover {
+  text-decoration: underline;
 }

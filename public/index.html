@@ -41,7 +41,10 @@
   </body>
   <template id="notes-list-item__template">
     <li class="notes-list-item">
-      <p class="notes-list-item__content"></p>
+      <div class="notes-list-item__contentWrapper">
+        <span class="notes-list-item__content"></span>
+        <button class="notes-list-item__truncateToggle">show more</button>
+      </div>
       <button class="notes-list-item__action edit-btn">
         <svg
           class="icon"

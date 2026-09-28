@@ -1,5 +1,7 @@
 import { NoteActions } from "./actions.js";
+import { NOTE_BODY_MAX_DISPLAY_LENGTH } from "./constants.js";
 import { syncPendingNote } from "./storage.js";
+import { truncateText } from "./utils.js";
 
 const form = document.getElementById("notes-form");
 const notesInput = document.getElementById(
@@ -73,6 +75,36 @@ form?.addEventListener("submit", async (e) => {
 notesList?.addEventListener("click", async (e) => {
   if (!(e.target instanceof Element)) return;
 
+  // TOGGLE TRUNCATION
+  const truncationToggle = e.target.closest(".notes-list-item__truncateToggle");
+  if (truncationToggle) {
+    const listItem = e.target.closest(".notes-list-item");
+    if (listItem) {
+      const notesContent = listItem.querySelector(".notes-list-item__content");
+      if (notesContent) {
+        if (notesContent.getAttribute("aria-expanded") === "true") {
+          notesContent.setAttribute("aria-expanded", "false");
+          notesContent.textContent = truncateText(
+            notesContent.getAttribute("data-full-text") ?? "",
+            NOTE_BODY_MAX_DISPLAY_LENGTH,
+          );
+          truncationToggle.textContent = "show more";
+
+          e.stopPropagation();
+          return;
+        } else if (notesContent.getAttribute("aria-expanded") === "false") {
+          notesContent.setAttribute("aria-expanded", "true");
+          notesContent.textContent =
+            notesContent.getAttribute("data-full-text");
+          truncationToggle.textContent = "show less";
+
+          e.stopPropagation();
+          return;
+        }
+      }
+    }
+  }
+
   // EDIT NOTE
   const editBtn = e.target.closest(".edit-btn");
   if (editBtn) {
@@ -87,15 +119,16 @@ notesList?.addEventListener("click", async (e) => {
         cancelEditBtn.hidden = false;
       }
 
-      const noteContent = listItem.querySelector(
-        ".notes-list-item__content",
-      )?.textContent;
+      const noteContent = listItem
+        .querySelector(".notes-list-item__content")
+        ?.getAttribute("data-full-text");
       if (!noteContent) return;
       listItem.classList.add("editing");
       activeNoteId = listItem.id;
       notesInput.value = noteContent;
       notesInput.focus();
 
+      e.stopPropagation();
       return;
     }
   }
@@ -107,15 +140,16 @@ notesList?.addEventListener("click", async (e) => {
     if (!listItem) return;
     await actions.deleteNote(listItem.id);
 
+    e.stopPropagation();
     return;
   }
 
   // COPY NOTE
   const listItem = e.target.closest(".notes-list-item");
   if (listItem) {
-    const noteContent = listItem.querySelector(
-      ".notes-list-item__content",
-    )?.textContent;
+    const noteContent = listItem
+      .querySelector(".notes-list-item__content")
+      ?.getAttribute("data-full-text");
     if (noteContent) actions.copyNote(noteContent);
     showIndicator(listItem, "Copied");
     return;
