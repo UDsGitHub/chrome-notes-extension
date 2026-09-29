@@ -15,6 +15,10 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (data, tab) => {
   if (data.menuItemId !== CONTEXT_MENU_ID || !tab || !tab.id) return;
 
-  await chrome.storage.session.set({ [PENDING_NOTE_KEY]: data.selectionText });
-  await chrome.sidePanel.open({ tabId: tab.id });
+  if (data.selectionText) {
+    await chrome.storage.session.set({
+      [PENDING_NOTE_KEY]: data.selectionText,
+    });
+    await chrome.sidePanel.open({ tabId: tab.id });
+  }
 });

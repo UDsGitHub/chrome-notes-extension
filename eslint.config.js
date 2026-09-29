@@ -4,6 +4,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
+  { ignores: ["dist/**"] },
   {
     files: ["src/**/*.{js,mjs,cjs,ts,mts,cts}"],
     plugins: { js },
@@ -11,4 +12,12 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
   tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
 ]);

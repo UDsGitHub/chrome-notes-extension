@@ -9,14 +9,23 @@
       <ul class="notes-list" hidden></ul>
       <form id="notes-form">
         <button class="cancel-edit-btn" hidden>Cancel</button>
-        <div class="notes-input-wrapper">
-          <textarea
-            id="notes-input"
-            name="notes-input"
-            placeholder="Enter your note..."
-            required
-            autofocus
-          ></textarea>
+        <div class="note-input__layout-wrapper">
+          <div class="notes-input__fields-wrapper">
+            <input
+              id="notes-title-input"
+              type="text"
+              placeholder="Title"
+              class="notes-title-input"
+              required
+            />
+            <textarea
+              id="notes-input"
+              name="notes-input"
+              placeholder="Enter your note..."
+              required
+              autofocus
+            ></textarea>
+          </div>
           <button id="notes-input-submit">
             <svg
               class="icon"
@@ -42,8 +51,10 @@
   <template id="notes-list-item__template">
     <li class="notes-list-item">
       <div class="notes-list-item__contentWrapper">
+        <p class="notes-list-item__title"></p>
         <span class="notes-list-item__content"></span>
         <button class="notes-list-item__truncateToggle">show more</button>
+        <span class="notes-list-item__date"></span>
       </div>
       <button class="notes-list-item__action edit-btn">
         <svg

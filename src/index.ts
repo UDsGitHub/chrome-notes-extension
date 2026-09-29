@@ -3,7 +3,10 @@ import { NOTE_BODY_MAX_DISPLAY_LENGTH } from "./constants.js";
 import { syncPendingNote } from "./storage.js";
 import { truncateText } from "./utils.js";
 
-const form = document.getElementById("notes-form");
+const form = document.getElementById("notes-form") as HTMLFormElement;
+const notesTitleInput = document.getElementById(
+  "notes-title-input",
+) as HTMLInputElement;
 const notesInput = document.getElementById(
   "notes-input",
 ) as HTMLTextAreaElement;
@@ -20,6 +23,9 @@ const actions = new NoteActions(notesList, notesEmpty, notesTemplate);
 const cleanUp = () => {
   if (notesInput) {
     notesInput.value = "";
+  }
+  if (notesTitleInput) {
+    notesTitleInput.value = "";
   }
   if (activeNoteId) {
     const activeNote = document.getElementById(activeNoteId);
@@ -56,12 +62,20 @@ const showIndicator = (
   indicatorTimers.set(indicator, timer);
 };
 
+form?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    form?.requestSubmit();
+  }
+});
+
 form?.addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  const noteTitleValue = notesTitleInput.value.trim();
   const noteInputValue = notesInput.value.trim();
-  if (noteInputValue !== "") {
-    await actions.addNote(noteInputValue, activeNoteId);
+  if (noteTitleValue && noteInputValue) {
+    await actions.addNote(noteTitleValue, noteInputValue, activeNoteId);
     if (activeNoteId) {
       const listItem = document.getElementById(activeNoteId);
       if (listItem) {
@@ -119,12 +133,17 @@ notesList?.addEventListener("click", async (e) => {
         cancelEditBtn.hidden = false;
       }
 
+      const noteTitle = listItem
+        .querySelector(".notes-list-item__title")
+        ?.getAttribute("title");
       const noteContent = listItem
         .querySelector(".notes-list-item__content")
         ?.getAttribute("data-full-text");
-      if (!noteContent) return;
+      if (!noteTitle || !noteContent) return;
+
       listItem.classList.add("editing");
       activeNoteId = listItem.id;
+      notesTitleInput.value = noteTitle;
       notesInput.value = noteContent;
       notesInput.focus();
 
@@ -161,7 +180,7 @@ cancelEditBtn?.addEventListener("click", (e) => {
   cleanUp();
 });
 
-actions.loadNotes(activeNoteId);
+actions.loadNotes();
 chrome.storage.session.onChanged.addListener(() =>
-  syncPendingNote((value) => actions.addNote(value, null)),
+  syncPendingNote((value) => actions.addNote("Untitled", value, null)),
 );

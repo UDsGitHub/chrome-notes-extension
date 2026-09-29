@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getNotesST,
-  saveNoteST,
+  addNoteST,
   deleteNoteST,
   syncPendingNote,
+  updateNoteST,
 } from "./storage.js";
 import { PENDING_NOTE_KEY } from "./constants.js";
 import type { NotesList } from "./types.js";
@@ -55,52 +56,74 @@ describe("storage", () => {
     });
   });
 
-  describe("saveNoteST", () => {
+  describe("addNoteST", () => {
     it("saves a note so getNotesST returns it", async () => {
-      const id = `note-${crypto.randomUUID()}`;
       const note = {
-        id,
+        title: "Title",
         content: "first note",
       };
 
-      await saveNoteST(note);
-      expect(await getNotesST()).toEqual({ [id]: "first note" });
+      const createdNote = await addNoteST(note);
+
+      expect(createdNote).toBeDefined();
+      expect(await getNotesST()).toEqual({
+        [createdNote!.id]: { ...note, createdAt: expect.any(String) },
+      });
     });
 
-    it("updates an existing note by id", async () => {
-      const id = `note-${crypto.randomUUID()}`;
+    it("updateNoteST", async () => {
       const note = {
-        id,
+        title: "Title",
         content: "first note",
       };
 
-      await saveNoteST(note);
-      expect(await getNotesST()).toEqual({ [id]: "first note" });
-      note.content = "updated first note";
-      await saveNoteST(note);
-      expect(await getNotesST()).toEqual({ [id]: "updated first note" });
+      const createdNote = await addNoteST(note);
+      expect(createdNote).toBeDefined();
+      expect(await getNotesST()).toEqual({
+        [createdNote!.id]: { ...note, createdAt: expect.any(String) },
+      });
+
+      // @ts-expect-error: null check above
+      const { id, ...rest } = createdNote;
+      const updatedNote = await updateNoteST(id, {
+        ...rest,
+        content: "updated first note",
+      });
+      expect(updatedNote).toBeDefined();
+
+      // @ts-expect-error: null check above
+      const { id: updatedId, ...updatedRest } = updatedNote;
+      expect(await getNotesST()).toEqual({
+        [updatedId]: {
+          ...updatedRest,
+          updatedAt: expect.any(String),
+        },
+      });
     });
   });
 
   describe("syncPendingNote", () => {
     it("add pending note and clears session key", async () => {
-      const id = `note-${crypto.randomUUID()}`;
       const note = {
-        id,
+        title: "Title",
         content: "first note",
       };
       await session.set({ [PENDING_NOTE_KEY]: note.content });
 
-      await syncPendingNote((value: string) =>
-        saveNoteST({ ...note, content: value }),
+      const createdNote = await syncPendingNote((value: string) =>
+        addNoteST({ ...note, content: value }),
       );
-      expect(await getNotesST()).toEqual({ [id]: "first note" });
+      expect(createdNote).toBeDefined();
+
+      // @ts-expect-error: null check above
+      const { id: _id, ...rest } = createdNote;
+      expect(await getNotesST()).toEqual({ [createdNote!.id]: rest });
       expect(session.items[PENDING_NOTE_KEY]).toBeUndefined();
     });
 
     it("does nothing when pending note is missing", async () => {
       await syncPendingNote((value: string) =>
-        saveNoteST({ id: "1", content: value }),
+        addNoteST({ title: "Title", content: value }),
       );
       expect(await getNotesST()).toBeNull();
     });
@@ -108,27 +131,27 @@ describe("storage", () => {
 
   describe("deleteNoteST", () => {
     it("deletes note by id", async () => {
-      const id = `note-${crypto.randomUUID()}`;
       const note = {
-        id,
+        title: "First Note",
         content: "first note",
       };
-      const id2 = `note-${crypto.randomUUID()}`;
       const note2 = {
-        id: id2,
+        title: "Second Note",
         content: "second note",
       };
 
-      await saveNoteST(note);
-      await saveNoteST(note2);
-      await deleteNoteST(id2);
+      const firstNote = await addNoteST(note);
+      expect(firstNote).toBeDefined();
+      const secondNote = await addNoteST(note2);
+      expect(secondNote).toBeDefined();
+      await deleteNoteST(secondNote!.id);
       const notes = await getNotesST();
 
       expect(notes).toBeDefined();
       // @ts-expect-error: null check above
-      expect(notes[id]).toBeDefined();
+      expect(notes[firstNote.id]).toBeDefined();
       // @ts-expect-error: should be undefined
-      expect(notes[id2]).toBeUndefined();
+      expect(notes[secondNote.id]).toBeUndefined();
     });
   });
 });

@@ -1,6 +1,15 @@
-export type Note = {
-    id: string;
-    content: string;
-}
+export type CreateNoteDto = {
+  title: string;
+  content: string;
+};
 
-export type NotesList = Record<string, string>
+export type NoteContent = CreateNoteDto & {
+  createdAt: string;
+  updatedAt?: string | null;
+};
+
+export type Note = {
+  id: string;
+} & NoteContent;
+
+export type NotesList = Record<string, NoteContent>;
