@@ -7,3 +7,8 @@ export function truncateText(text: string, maxLength: number) {
     ? `${truncatedText.slice(0, lastSpace)}...`
     : truncatedText;
 }
+
+export const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});

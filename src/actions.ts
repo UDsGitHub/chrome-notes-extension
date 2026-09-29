@@ -1,12 +1,16 @@
-import { NOTE_BODY_MAX_DISPLAY_LENGTH } from "./constants.js";
+import {
+  NOTE_BODY_MAX_DISPLAY_LENGTH,
+  NOTE_TITLE_MAX_LENGTH,
+} from "./constants.js";
 import {
   getNotesST,
-  saveNoteST,
+  addNoteST,
   deleteNoteST,
   syncPendingNote,
+  updateNoteST,
 } from "./storage.js";
 import type { Note } from "./types.js";
-import { truncateText } from "./utils.js";
+import { dateFormatter, truncateText } from "./utils.js";
 export class NoteActions {
   notesList: HTMLElement;
   notesEmpty: HTMLElement;
@@ -21,22 +25,32 @@ export class NoteActions {
     this.notesTemplate = notesTemplate;
   }
 
-  async loadNotes(activeNoteId: string | null) {
+  async loadNotes() {
     try {
       const notes = await getNotesST();
 
       if (notes) {
-        Object.entries(notes).forEach((entry) => {
-          const note = {
-            id: entry[0],
-            content: entry[1],
-          };
-
-          this.#createNoteElement(note);
+        const sortedNotes = Object.entries(notes).toSorted((a, b) => {
+          const dateA = new Date(a[1].updatedAt ?? a[1].createdAt);
+          const dateB = new Date(b[1].updatedAt ?? b[1].createdAt);
+          return dateA.getTime() - dateB.getTime();
         });
+
+        const notesListEl = document.querySelector(".notes-list");
+        if (notesListEl) {
+          notesListEl.innerHTML = "";
+          sortedNotes.forEach((entry) => {
+            const note = {
+              id: entry[0],
+              ...entry[1],
+            };
+
+            this.#createNoteElement(note);
+          });
+        }
       }
 
-      syncPendingNote((value) => this.addNote(value, activeNoteId));
+      syncPendingNote((value) => this.addNote("Untitled", value, null));
     } catch (error) {
       console.error("Failed to load notes from local storage: ", error);
     } finally {
@@ -44,18 +58,27 @@ export class NoteActions {
     }
   }
 
-  async addNote(value: string, activeNoteId: string | null) {
-    const id = activeNoteId ?? `note-${crypto.randomUUID()}`;
-    const note = {
-      id,
-      content: value,
-    };
-
-    await saveNoteST(note);
+  async addNote(title: string, content: string, activeNoteId: string | null) {
     if (activeNoteId) {
-      this.#updateNoteElement(note);
+      const updatedNote = await updateNoteST(activeNoteId, {
+        title,
+        content,
+      });
+      if (updatedNote) {
+        this.#updateNoteElement(updatedNote);
+      }
+
+      return updatedNote;
     } else {
-      this.#createNoteElement(note);
+      const createdNote = await addNoteST({
+        title,
+        content,
+      });
+      if (createdNote) {
+        this.#createNoteElement(createdNote);
+      }
+
+      return createdNote;
     }
   }
 
@@ -92,30 +115,64 @@ export class NoteActions {
 
     if (listElement) {
       listElement.id = note.id;
-      const notesContent = template.querySelector(".notes-list-item__content");
+
+      const notesTitle = listElement.querySelector(".notes-list-item__title");
+      if (notesTitle) {
+        const truncatedTitle = truncateText(note.title, NOTE_TITLE_MAX_LENGTH);
+        notesTitle.textContent = truncatedTitle;
+        notesTitle.setAttribute("title", note.title);
+      }
+
+      const notesContent = listElement.querySelector(
+        ".notes-list-item__content",
+      );
       if (notesContent) {
         const toggleBtn = listElement.querySelector(
           ".notes-list-item__truncateToggle",
         );
         this.#setTruncatedState(note.content, notesContent, toggleBtn);
-        this.notesList.appendChild(template);
+        this.notesList.prepend(template);
         this.#syncEmptyState();
+      }
+
+      const notesDate = listElement.querySelector(".notes-list-item__date");
+      if (notesDate) {
+        const date = dateFormatter.format(
+          new Date(note.updatedAt ?? note.createdAt),
+        );
+        notesDate.textContent = date;
       }
     }
   }
 
   #updateNoteElement(note: Note) {
-    const noteElement = document.getElementById(note.id);
-    const notesContent = noteElement?.querySelector(
-      ".notes-list-item__content",
-    );
+    const listElement = document.getElementById(note.id);
+    if (!listElement) return;
+
+    const notesTitle = listElement.querySelector(".notes-list-item__title");
+    if (notesTitle) {
+      const truncatedTitle = truncateText(note.title, NOTE_TITLE_MAX_LENGTH);
+      notesTitle.textContent = truncatedTitle;
+      notesTitle.setAttribute("title", note.title);
+    }
+
+    const notesContent = listElement.querySelector(".notes-list-item__content");
     if (notesContent) {
-      const toggleBtn = noteElement?.querySelector(
+      const toggleBtn = listElement.querySelector(
         ".notes-list-item__truncateToggle",
       );
       this.#setTruncatedState(note.content, notesContent, toggleBtn);
-      notesContent.setAttribute("data-full-text", note.content);
     }
+
+    const notesDate = listElement.querySelector(".notes-list-item__date");
+    if (notesDate) {
+      const date = dateFormatter.format(
+        new Date(note.updatedAt ?? note.createdAt),
+      );
+      notesDate.textContent = date;
+    }
+
+    this.loadNotes();
   }
 
   #setTruncatedState(
@@ -125,9 +182,11 @@ export class NoteActions {
   ) {
     notesContentEl.setAttribute("data-full-text", content);
     const truncatedText = truncateText(content, NOTE_BODY_MAX_DISPLAY_LENGTH);
-    if (truncatedText.length > NOTE_BODY_MAX_DISPLAY_LENGTH) {
+    if (content.length > NOTE_BODY_MAX_DISPLAY_LENGTH) {
       toggleBtn?.classList.add("visible");
       notesContentEl.setAttribute("aria-expanded", "false");
+    } else {
+      toggleBtn?.classList.remove("visible");
     }
     notesContentEl.textContent = truncatedText;
   }

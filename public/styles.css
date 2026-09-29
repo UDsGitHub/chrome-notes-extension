@@ -6,6 +6,8 @@
   --primary-text-color-inverse: light-dark(black, white);
   --text-color: light-dark(black, #888);
   --text-color-inverse: light-dark(#888, black);
+  --text-secondary-color: light-dark(black, #444);
+  --text-secondary-color-inverse: light-dark(black, #888);
   --text-hover-color: light-dark(black, white);
   --text-hover-color-inverse: light-dark(white, black);
   --accent-color: light-dark(#444, #444);
@@ -49,6 +51,10 @@ h2 {
   margin-bottom: 14px;
 }
 
+p {
+  margin: 0;
+}
+
 .notes-empty {
   flex-grow: 1;
   display: flex;
@@ -80,6 +86,7 @@ h2 {
 }
 
 .notes-list-item {
+  flex-shrink: 0;
   position: relative;
   background-color: transparent;
   border: 1px solid var(--accent-color);
@@ -103,6 +110,12 @@ h2 {
 
 .notes-list-item__contentWrapper {
   flex-grow: 1;
+}
+
+.notes-list-item__title {
+  font-size: 1.25em;
+  font-weight: bold;
+  padding-block: 0.5em;
 }
 
 .notes-list-item__content {
@@ -142,30 +155,54 @@ h2 {
   padding-top: 20px;
 }
 
-.notes-input-wrapper {
-  margin-top: auto;
+.note-input__layout-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-#notes-input {
+.notes-input__fields-wrapper {
   flex-grow: 1;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--accent-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#notes-title-input {
   field-sizing: content;
   min-height: 1lh;
   max-height: calc(3lh + 24px);
   line-height: 1.4;
-  border-radius: 8px;
+  font: inherit;
+  color: inherit;
   background-color: transparent;
-  border: 1px solid var(--accent-color);
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  outline-color: #777;
+  font-size: 1.25em;
+  font-weight: bold;
+}
+
+#notes-input {
+  flex-grow: 1;
+  min-height: 1lh;
+  max-height: calc(3lh + 24px);
+  line-height: 1.4;
+  font: inherit;
+  color: inherit;
+  background-color: transparent;
+  border: none;
+  border-top: 1px solid var(--accent-color);
+  border-radius: 8px;
   padding: 12px;
   outline-color: #777;
   resize: none;
   overflow-y: auto;
-}
-
-#notes-input::placeholder {
-  font-size: 0.95em;
+  font-size: 1.15em;
 }
 
 #notes-input-submit {
@@ -249,4 +286,10 @@ h2 {
 
 .notes-list-item__truncateToggle:hover {
   text-decoration: underline;
+}
+
+.notes-list-item__date {
+  display: block;
+  margin-top: 0.5em;
+  color: var(--text-secondary-color);
 }
