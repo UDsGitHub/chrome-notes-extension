@@ -15,6 +15,10 @@ export const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
+/**
+  * Notes are returned in ascending order because of node appending  
+  * Reverse array if descending order is needed
+*/
 export function getSortedNotes(notes: NotesList) {
   return Object.entries(notes).toSorted((a, b) => {
     const dateA = new Date(a[1].updatedAt ?? a[1].createdAt);
