@@ -3,7 +3,10 @@
 - [x] click delete and note is deleted from local storage
 - [x] add note title
 - [x] truncate long notes
-- [ ] add note groups
+- [x] export as csv or json
+- [x] add toasts for error or info notification
+- [x] update loader spinner animation to include dash offset animation
+- [ ] import as csv or json
 - [ ] add entry and exit animations
 - [ ] add drag to reorder
-- [ ] export as csv or json
+- [ ] add note groups

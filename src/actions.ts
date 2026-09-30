@@ -10,7 +10,7 @@ import {
   updateNoteST,
 } from "./storage.js";
 import type { Note } from "./types.js";
-import { dateFormatter, truncateText } from "./utils.js";
+import { dateFormatter, getSortedNotes, truncateText } from "./utils.js";
 export class NoteActions {
   notesList: HTMLElement;
   notesEmpty: HTMLElement;
@@ -30,11 +30,7 @@ export class NoteActions {
       const notes = await getNotesST();
 
       if (notes) {
-        const sortedNotes = Object.entries(notes).toSorted((a, b) => {
-          const dateA = new Date(a[1].updatedAt ?? a[1].createdAt);
-          const dateB = new Date(b[1].updatedAt ?? b[1].createdAt);
-          return dateA.getTime() - dateB.getTime();
-        });
+        const sortedNotes = getSortedNotes(notes)
 
         const notesListEl = document.querySelector(".notes-list");
         if (notesListEl) {
@@ -131,8 +127,6 @@ export class NoteActions {
           ".notes-list-item__truncateToggle",
         );
         this.#setTruncatedState(note.content, notesContent, toggleBtn);
-        this.notesList.prepend(template);
-        this.#syncEmptyState();
       }
 
       const notesDate = listElement.querySelector(".notes-list-item__date");
@@ -142,6 +136,9 @@ export class NoteActions {
         );
         notesDate.textContent = date;
       }
+
+      this.notesList.prepend(template);
+      this.#syncEmptyState();
     }
   }
 

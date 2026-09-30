@@ -18,5 +18,5 @@
     "service_worker": "dist/service-worker.js",
     "type": "module"
   },
-  "permissions": ["sidePanel", "contextMenus", "storage"]
+  "permissions": ["sidePanel", "contextMenus", "storage", "downloads"]
 }

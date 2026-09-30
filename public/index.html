@@ -1,12 +1,52 @@
-<html>
+<!doctype html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header><h2>Notes</h2></header>
+    <header>
+      <h2>Notes</h2>
+      <div>
+        <button
+          class="export-btn"
+          title="export"
+          aria-label="export"
+          popovertarget="export-popover"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="icon"
+          >
+            <path d="M12 3v12" />
+            <path d="m17 8-5-5-5 5" />
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          </svg>
+        </button>
+        <div id="export-popover" popover>
+          <button id="export-csv">
+            <span>Export as CSV</span>
+          </button>
+          <button id="export-json">
+            <span>Export as JSON</span>
+          </button>
+        </div>
+      </div>
+    </header>
     <main>
-      <p class="notes-empty">No notes yet. Add one below.</p>
-      <ul class="notes-list" hidden></ul>
+      <div class="notes-list__wrapper">
+        <p class="notes-empty">No notes yet. Add one below.</p>
+        <ul class="notes-list" hidden></ul>
+      </div>
       <form id="notes-form">
         <button class="cancel-edit-btn" hidden>Cancel</button>
         <div class="note-input__layout-wrapper">
@@ -17,6 +57,7 @@
               placeholder="Title"
               class="notes-title-input"
               required
+              maxlength="50"
             />
             <textarea
               id="notes-input"
@@ -47,55 +88,94 @@
         </div>
       </form>
     </main>
-  </body>
-  <template id="notes-list-item__template">
-    <li class="notes-list-item">
-      <div class="notes-list-item__contentWrapper">
-        <p class="notes-list-item__title"></p>
-        <span class="notes-list-item__content"></span>
-        <button class="notes-list-item__truncateToggle">show more</button>
-        <span class="notes-list-item__date"></span>
-      </div>
-      <button class="notes-list-item__action edit-btn">
-        <svg
-          class="icon"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
+    <dialog id="loader" closedby="none" class="loader__spinner-wrapper">
+      <svg class="loader__spinner" viewBox="0 0 100 100">
+        <circle
+          cx="50"
+          cy="50"
+          r="25"
           fill="none"
-          viewBox="0 0 24 24"
-        >
-          <path
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-dasharray="117.75 39.25"
+          stroke-linecap="round"
+        />
+      </svg>
+      <p>Processing...</p>
+    </dialog>
+    <!-- NOTE ITEM TEMPLATE -->
+    <template id="notes-list-item__template">
+      <li class="notes-list-item">
+        <div class="notes-list-item__contentWrapper">
+          <p class="notes-list-item__title"></p>
+          <span class="notes-list-item__content"></span>
+          <button class="notes-list-item__truncateToggle">show more</button>
+          <span class="notes-list-item__date"></span>
+        </div>
+        <button class="notes-list-item__action edit-btn">
+          <svg
+            class="icon"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"
+            />
+          </svg>
+        </button>
+        <button class="notes-list-item__action delete-btn">
+          <svg
+            class="icon"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1"
+              d="M6 18 17.94 6M18 18 6.06 6"
+            />
+          </svg>
+        </button>
+        <span class="notes-list-item__indicator">copied</span>
+      </li>
+    </template>
+    <!-- TOAST TEMPLATE -->
+    <template id="toast__template">
+      <div class="toast">
+        <span class="toast__message"></span>
+        <button class="toast__dismiss-btn">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
             stroke-width="2"
-            d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"
-          />
-        </svg>
-      </button>
-      <button class="notes-list-item__action delete-btn">
-        <svg
-          class="icon"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
-            stroke-width="1"
-            d="M6 18 17.94 6M18 18 6.06 6"
-          />
-        </svg>
-      </button>
-      <span class="notes-list-item__indicator">copied</span>
-    </li>
-  </template>
+            class="icon"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+    </template>
+  </body>
   <script type="module" src="../dist/index.js"></script>
 </html>
