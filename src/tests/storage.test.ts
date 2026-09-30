@@ -5,9 +5,9 @@ import {
   deleteNoteST,
   syncPendingNote,
   updateNoteST,
-} from "./storage.js";
-import { PENDING_NOTE_KEY } from "./constants.js";
-import type { NotesList } from "./types.js";
+} from "../storage.js";
+import { PENDING_NOTE_KEY } from "../constants.js";
+import type { NotesList } from "../types.js";
 
 type StorageValue<T> = Record<string, T>;
 interface StorageMedium<T> {
