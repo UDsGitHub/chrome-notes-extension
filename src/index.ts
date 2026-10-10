@@ -40,6 +40,10 @@ const importDropzoneLabel = document.querySelector<HTMLElement>(
 );
 const importFileInput = document.querySelector<HTMLInputElement>("#import-file");
 const importTextInput = document.querySelector<HTMLTextAreaElement>("#import-text");
+const importExample = document.querySelector<HTMLDetailsElement>("#import-example");
+const importExampleCode = document.querySelector<HTMLElement>(
+  "#import-example-code",
+);
 const importError = document.querySelector<HTMLElement>("#import-error");
 const importCancelBtn =
   document.querySelector<HTMLButtonElement>("#import-cancel");
@@ -49,6 +53,19 @@ const importSubmitBtn =
 const IMPORT_PLACEHOLDERS: Record<ImportFormat, string> = {
   json: '[{"id":"...","title":"...","content":"...","createdAt":"..."}]',
   csv: "id,title,content,createdAt,updatedAt",
+};
+const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
+  json: `[
+  {
+    "id": "note-…",
+    "title": "Title",
+    "content": "Note body",
+    "createdAt": "2026-09-10T12:00:00.000Z",
+    "updatedAt": "2026-09-16T12:00:00.000Z"
+  }
+]`,
+  csv: `id,title,content,createdAt,updatedAt
+"note-…","Title","Note body","2026-09-10T12:00:00.000Z",""`,
 };
 const DROPZONE_DEFAULT_LABEL =
   "Drop a .json or .csv file here, or click to browse";
@@ -355,6 +372,11 @@ const syncPastePlaceholder = () => {
   importTextInput.placeholder = IMPORT_PLACEHOLDERS[getPasteFormat()];
 };
 
+const syncImportExample = () => {
+  if (!importExampleCode) return;
+  importExampleCode.textContent = IMPORT_EXAMPLES[getPasteFormat()];
+};
+
 const syncDropzoneLabel = (file?: File | null) => {
   if (!importDropzone || !importDropzoneLabel) return;
 
@@ -386,8 +408,10 @@ const setImportFile = (file: File | null) => {
 const resetImportForm = () => {
   importForm?.reset();
   importDropzone?.classList.remove("is-dragover");
+  if (importExample) importExample.open = false;
   syncDropzoneLabel(null);
   syncPastePlaceholder();
+  syncImportExample();
   setImportButtonState("default");
 };
 
@@ -401,6 +425,13 @@ const importResultMessage = (imported: number, skipped: number) => {
   return `No notes imported. ${skipped} already exist.`;
 };
 
+const waitForImportLoadingMin = async (startedAt: number) => {
+  const remaining = LOADER_MIN_VISIBLE - (Date.now() - startedAt);
+  if (remaining > 0) {
+    await new Promise((r) => setTimeout(r, remaining));
+  }
+};
+
 const handleImportSubmit = async (e: SubmitEvent) => {
   e.preventDefault();
 
@@ -408,12 +439,15 @@ const handleImportSubmit = async (e: SubmitEvent) => {
   const pasted = importTextInput?.value ?? "";
 
   setImportButtonState("loading");
+  const loadingStartedAt = Date.now();
 
   try {
     const notes = file
       ? parseNotes(await file.text(), { filename: file.name })
       : parseNotes(pasted, { format: getPasteFormat() });
     const { imported, skipped } = await importNotesST(notes);
+
+    await waitForImportLoadingMin(loadingStartedAt);
 
     if (imported > 0) {
       setImportButtonState("success");
@@ -429,6 +463,7 @@ const handleImportSubmit = async (e: SubmitEvent) => {
     setImportButtonState("default");
     toaster.toast(importResultMessage(imported, skipped), "warning");
   } catch (error) {
+    await waitForImportLoadingMin(loadingStartedAt);
     const message =
       error instanceof Error ? error.message : "Something went wrong.";
     setImportButtonState("error", message);
@@ -550,8 +585,11 @@ importForm?.addEventListener("change", (e) => {
   if (!(e.target instanceof HTMLInputElement)) return;
   if (e.target.name !== "import-format") return;
   syncPastePlaceholder();
+  syncImportExample();
   setImportButtonState("default");
 });
+
+syncImportExample();
 
 importDialog?.addEventListener("close", () => {
   resetImportForm();

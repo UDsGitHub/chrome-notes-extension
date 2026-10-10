@@ -7,6 +7,7 @@
 - [x] add toasts for error or info notification
 - [x] update loader spinner animation to include dash offset animation
 - [x] import as csv or json
+- [ ] update click delegation setup to stop propagation early after action is performed.
 - [ ] add drag to reorder
 - [ ] add entry and exit animations
 - [ ] add note groups
