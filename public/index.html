@@ -8,7 +8,30 @@
   <body>
     <header>
       <h2>Notes</h2>
-      <div>
+      <div class="header-actions">
+        <button
+          class="import-btn"
+          id="import-open"
+          title="import"
+          aria-label="import"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="icon"
+          >
+            <path d="M12 15V3" />
+            <path d="m17 8-5 5-5-5" />
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          </svg>
+        </button>
         <button
           class="export-btn"
           title="export"
@@ -42,6 +65,60 @@
         </div>
       </div>
     </header>
+    <dialog id="import-dialog" class="import-dialog">
+      <form id="import-form" class="import-form">
+        <h3 class="import-dialog__title">Import notes</h3>
+        <div
+          id="import-dropzone"
+          class="import-dropzone"
+          role="button"
+          tabindex="0"
+          aria-controls="import-file"
+        >
+          <input
+            id="import-file"
+            class="import-dropzone__input"
+            type="file"
+            accept=".json,.csv,application/json,text/csv"
+          />
+          <span id="import-dropzone-label" class="import-dropzone__label">
+            Drop a .json or .csv file here, or click to browse
+          </span>
+        </div>
+        <fieldset class="import-paste">
+          <legend class="import-paste__legend">Or paste</legend>
+          <div class="import-paste__formats" role="radiogroup" aria-label="Paste format">
+            <label class="import-paste__format">
+              <input
+                type="radio"
+                name="import-format"
+                value="json"
+                checked
+              />
+              JSON
+            </label>
+            <label class="import-paste__format">
+              <input type="radio" name="import-format" value="csv" />
+              CSV
+            </label>
+          </div>
+          <textarea
+            id="import-text"
+            rows="6"
+            placeholder='[{"id":"...","title":"...","content":"...","createdAt":"..."}]'
+          ></textarea>
+        </fieldset>
+        <p id="import-error" class="import-dialog__error" hidden></p>
+        <div class="import-dialog__actions">
+          <button type="button" id="import-cancel" class="import-dialog__cancel">
+            Cancel
+          </button>
+          <button type="submit" id="import-submit" class="import-dialog__submit">
+            Import
+          </button>
+        </div>
+      </form>
+    </dialog>
     <main>
       <div class="notes-list__wrapper">
         <p class="notes-empty">No notes yet. Add one below.</p>

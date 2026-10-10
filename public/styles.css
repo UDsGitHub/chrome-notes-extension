@@ -86,11 +86,193 @@ header {
   margin-bottom: 14px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.import-btn,
 .export-btn {
   background-color: transparent;
   outline: none;
   border: none;
   cursor: pointer;
+}
+
+.import-btn:disabled,
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-dialog {
+  width: min(360px, calc(100% - 24px));
+  margin: auto;
+  padding: 16px;
+  border: 1px solid var(--grey-700);
+  border-radius: 12px;
+  background-color: var(--grey-900);
+  color: var(--text-color);
+}
+
+.import-dialog::backdrop {
+  background-color: color-mix(in srgb, var(--grey-950) 55%, transparent);
+}
+
+.import-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.import-dialog__title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-hover-color);
+}
+
+.import-dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88px;
+  padding: 16px;
+  border: 1px dashed var(--grey-600);
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--grey-800) 60%, transparent);
+  color: var(--text-secondary-color);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 150ms,
+    background-color 150ms,
+    color 150ms;
+}
+
+.import-dropzone:hover,
+.import-dropzone:focus-visible {
+  border-color: var(--grey-400);
+  color: var(--text-hover-color);
+  outline: none;
+}
+
+.import-dropzone.is-dragover {
+  border-color: var(--grey-300);
+  background-color: var(--hover-overlay);
+  color: var(--text-hover-color);
+}
+
+.import-dropzone.has-file {
+  border-style: solid;
+  color: var(--text-color);
+}
+
+.import-dropzone__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.import-dropzone__label {
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.import-paste {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import-paste__legend {
+  padding: 0;
+  margin-bottom: 2px;
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+}
+
+.import-paste__formats {
+  display: flex;
+  gap: 12px;
+}
+
+.import-paste__format {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.import-paste textarea {
+  resize: vertical;
+  min-height: 96px;
+  padding: 8px;
+  border: 1px solid var(--grey-700);
+  border-radius: 8px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font: inherit;
+}
+
+.import-paste textarea:focus {
+  outline: 1px solid var(--outline-color);
+}
+
+.import-dialog__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: oklch(70.4% 0.191 22.216);
+}
+
+.import-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.import-dialog__cancel,
+.import-dialog__submit {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+}
+
+.import-dialog__cancel {
+  background-color: transparent;
+  color: var(--text-color);
+}
+
+.import-dialog__cancel:hover {
+  background-color: var(--hover-overlay);
+}
+
+.import-dialog__submit {
+  background-color: var(--primary-btn);
+  color: var(--primary-text-color);
+}
+
+.import-dialog__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.import-dialog__submit.is-error {
+  background-color: oklch(45% 0.16 25);
+}
+
+.import-dialog__submit.is-success {
+  background-color: oklch(45% 0.12 145);
 }
 
 #export-popover {
