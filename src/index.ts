@@ -200,120 +200,116 @@ const processAsync = async (
 
 // HANDLERS
 
-const handleTruncationToggle = (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
+/** Returns true when the click was handled so the notes-list dispatcher can stop. */
+const handleTruncationToggle = (target: Element) => {
+  const truncationToggle = target.closest(".notes-list-item__truncateToggle");
+  if (!truncationToggle) return false;
 
-  const truncationToggle = e.target.closest(".notes-list-item__truncateToggle");
-  if (truncationToggle) {
-    const listItem = e.target.closest(".notes-list-item");
-    if (listItem) {
-      const notesContent = listItem.querySelector(".notes-list-item__content");
-      if (notesContent) {
-        if (notesContent.getAttribute("aria-expanded") === "true") {
-          notesContent.setAttribute("aria-expanded", "false");
-          notesContent.textContent = truncateText(
-            notesContent.getAttribute("data-full-text") ?? "",
-            NOTE_BODY_MAX_DISPLAY_LENGTH,
-          );
-          truncationToggle.textContent = "show more";
+  const listItem = target.closest(".notes-list-item");
+  if (!listItem) return true;
 
-          e.stopPropagation();
-          return;
-        } else if (notesContent.getAttribute("aria-expanded") === "false") {
-          notesContent.setAttribute("aria-expanded", "true");
-          notesContent.textContent =
-            notesContent.getAttribute("data-full-text");
-          truncationToggle.textContent = "show less";
+  const notesContent = listItem.querySelector(".notes-list-item__content");
+  if (!notesContent) return true;
 
-          e.stopPropagation();
-          return;
-        }
-      }
-    }
+  if (notesContent.getAttribute("aria-expanded") === "true") {
+    notesContent.setAttribute("aria-expanded", "false");
+    notesContent.textContent = truncateText(
+      notesContent.getAttribute("data-full-text") ?? "",
+      NOTE_BODY_MAX_DISPLAY_LENGTH,
+    );
+    truncationToggle.textContent = "show more";
+    return true;
   }
+
+  if (notesContent.getAttribute("aria-expanded") === "false") {
+    notesContent.setAttribute("aria-expanded", "true");
+    notesContent.textContent = notesContent.getAttribute("data-full-text");
+    truncationToggle.textContent = "show less";
+    return true;
+  }
+
+  return true;
 };
 
-const handleEditNoteClick = (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
+/** Returns true when the click was handled so the notes-list dispatcher can stop. */
+const handleEditNoteClick = (target: Element) => {
+  const editBtn = target.closest(".edit-btn");
+  if (!editBtn) return false;
 
-  const editBtn = e.target.closest(".edit-btn");
-  if (editBtn) {
-    const listItem = e.target.closest(".notes-list-item");
-    if (listItem) {
-      if (activeNoteId) {
-        const activeNote = document.getElementById(activeNoteId);
-        activeNote?.classList.remove("editing");
-      }
+  const listItem = target.closest(".notes-list-item");
+  if (!listItem) return true;
 
-      if (cancelEditBtn) {
-        cancelEditBtn.hidden = false;
-      }
-
-      const noteTitle = listItem
-        .querySelector(".notes-list-item__title")
-        ?.getAttribute("title");
-      const noteContent = listItem
-        .querySelector(".notes-list-item__content")
-        ?.getAttribute("data-full-text");
-      if (!noteTitle || !noteContent) return;
-
-      listItem.classList.add("editing");
-      activeNoteId = listItem.id;
-      notesTitleInput.value = noteTitle;
-      notesInput.value = noteContent;
-      notesInput.focus();
-
-      e.stopPropagation();
-      return;
-    }
+  if (activeNoteId) {
+    const activeNote = document.getElementById(activeNoteId);
+    activeNote?.classList.remove("editing");
   }
+
+  if (cancelEditBtn) {
+    cancelEditBtn.hidden = false;
+  }
+
+  const noteTitle = listItem
+    .querySelector(".notes-list-item__title")
+    ?.getAttribute("title");
+  const noteContent = listItem
+    .querySelector(".notes-list-item__content")
+    ?.getAttribute("data-full-text");
+  if (!noteTitle || !noteContent) return true;
+
+  listItem.classList.add("editing");
+  activeNoteId = listItem.id;
+  notesTitleInput.value = noteTitle;
+  notesInput.value = noteContent;
+  notesInput.focus();
+  return true;
 };
 
-const handleDeleteNoteClick = async (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
+/** Returns true when the click was handled so the notes-list dispatcher can stop. */
+const handleDeleteNoteClick = async (target: Element) => {
+  const deleteBtn = target.closest(".delete-btn");
+  if (!deleteBtn) return false;
 
-  const deleteBtn = e.target.closest(".delete-btn");
-  if (deleteBtn) {
-    const listItem = deleteBtn.closest("li");
-    if (!listItem) return;
-    await actions.deleteNote(listItem.id);
+  const listItem = deleteBtn.closest(".notes-list-item");
+  if (!listItem) return true;
 
-    e.stopPropagation();
-    return;
-  }
+  await actions.deleteNote(listItem.id);
+  return true;
 };
 
-const handleCopyNoteClick = (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
+/** Returns true when the click was handled so the notes-list dispatcher can stop. */
+const handleCopyNoteClick = (target: Element) => {
+  const listItem = target.closest(".notes-list-item");
+  if (!listItem) return false;
 
-  const listItem = e.target.closest(".notes-list-item");
-  if (listItem) {
-    const noteContent = listItem
-      .querySelector(".notes-list-item__content")
-      ?.getAttribute("data-full-text");
-    if (noteContent) actions.copyNote(noteContent);
-    showIndicator(listItem, "Copied");
-    return;
-  }
+  const noteContent = listItem
+    .querySelector(".notes-list-item__content")
+    ?.getAttribute("data-full-text");
+  if (noteContent) actions.copyNote(noteContent);
+  showIndicator(listItem, "Copied");
+  return true;
 };
 
-const handleCsvExport = async (e: PointerEvent) => {
+const handleNotesListClick = async (e: MouseEvent) => {
   if (!(e.target instanceof Element)) return;
 
-  const exportCsvBtn = e.target.closest("#export-csv");
-  if (exportCsvBtn) {
+  if (handleTruncationToggle(e.target)) return;
+  if (handleEditNoteClick(e.target)) return;
+  if (await handleDeleteNoteClick(e.target)) return;
+  handleCopyNoteClick(e.target);
+};
+
+const handleExportPopoverClick = (e: MouseEvent) => {
+  if (!(e.target instanceof Element)) return;
+
+  if (e.target.closest("#export-csv")) {
     exportPopover?.hidePopover();
     processAsync(exportCSV, () => {
       toaster.toast("CSV downloaded.");
     });
+    return;
   }
-};
 
-const handleJsonExport = async (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
-
-  const exportJsonBtn = e.target.closest("#export-json");
-  if (exportJsonBtn) {
+  if (e.target.closest("#export-json")) {
     exportPopover?.hidePopover();
     processAsync(exportJSON, () => {
       toaster.toast("JSON downloaded.");
@@ -496,33 +492,14 @@ form?.addEventListener("submit", async (e) => {
   }
 });
 
-notesList?.addEventListener("click", async (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
+notesList?.addEventListener("click", handleNotesListClick);
 
-  // TOGGLE TRUNCATION
-  handleTruncationToggle(e);
-
-  // EDIT NOTE
-  handleEditNoteClick(e);
-
-  // DELETE NOTE
-  await handleDeleteNoteClick(e);
-
-  // COPY NOTE
-  handleCopyNoteClick(e);
-});
-
-cancelEditBtn?.addEventListener("click", (e: PointerEvent) => {
+cancelEditBtn?.addEventListener("click", (e: MouseEvent) => {
   e.preventDefault();
   cleanUp();
 });
 
-exportPopover?.addEventListener("click", async (e: PointerEvent) => {
-  if (!(e.target instanceof Element)) return;
-
-  handleCsvExport(e);
-  handleJsonExport(e);
-});
+exportPopover?.addEventListener("click", handleExportPopoverClick);
 
 importOpenBtn?.addEventListener("click", () => {
   resetImportForm();
