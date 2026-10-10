@@ -65,6 +65,31 @@ export const deleteNoteST = async (noteId: string) => {
   });
 };
 
+export const importNotesST = async (incoming: Note[]) => {
+  const notes = (await getNotesST()) ?? {};
+  let imported = 0;
+  let skipped = 0;
+
+  for (const note of incoming) {
+    if (notes[note.id]) {
+      skipped++;
+      continue;
+    }
+
+    const { id, ...content } = note;
+    notes[id] = content;
+    imported++;
+  }
+
+  if (imported > 0) {
+    await chrome.storage.local.set({
+      [NOTES_STORAGE_KEY]: notes,
+    });
+  }
+
+  return { imported, skipped };
+};
+
 export const syncPendingNote = async (
   addNote: (value: string) => Promise<Note | undefined>,
 ) => {

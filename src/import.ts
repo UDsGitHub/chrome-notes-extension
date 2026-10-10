@@ -1,0 +1,223 @@
+import type { Note } from "./types.js";
+
+const CSV_HEADER = "id,title,content,createdAt,updatedAt";
+
+export type ImportFormat = "json" | "csv";
+
+export type ParseNotesOptions =
+  | { filename: string; format?: never }
+  | { format: ImportFormat; filename?: never };
+
+export function parseNotes(text: string, options: ParseNotesOptions): Note[] {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error("Nothing to import.");
+  }
+
+  const format = resolveFormat(options);
+  const notes =
+    format === "json" ? parseJSONNotes(trimmed) : parseCSVNotes(trimmed);
+  assertUniqueIds(notes);
+  return notes;
+}
+
+function resolveFormat(options: ParseNotesOptions): ImportFormat {
+  if ("filename" in options && options.filename) {
+    const lower = options.filename.toLowerCase();
+    if (lower.endsWith(".json")) return "json";
+    if (lower.endsWith(".csv")) return "csv";
+    throw new Error("File must be .json or .csv.");
+  }
+
+  if ("format" in options && options.format) {
+    return options.format;
+  }
+
+  throw new Error("Choose JSON or CSV.");
+}
+
+function parseJSONNotes(text: string): Note[] {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Invalid JSON.");
+  }
+
+  if (!Array.isArray(data)) {
+    throw new Error("JSON must be an array of notes.");
+  }
+
+  return data.map((item, index) => validateNote(item, index + 1));
+}
+
+function parseCSVNotes(text: string): Note[] {
+  const rows = parseCSV(text);
+  if (rows.length === 0) {
+    throw new Error("CSV is empty.");
+  }
+
+  const header = rows[0]!.join(",");
+  if (header !== CSV_HEADER) {
+    throw new Error(
+      `CSV header must be ${CSV_HEADER}.`,
+    );
+  }
+
+  if (rows.length === 1) {
+    return [];
+  }
+
+  return rows.slice(1).map((row, index) => {
+    const rowNumber = index + 2;
+    if (row.length !== 5) {
+      throw new Error(`Row ${rowNumber} has the wrong number of columns.`);
+    }
+
+    const [id, title, content, createdAt, updatedAtRaw] = row as [
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+
+    return validateNote(
+      {
+        id,
+        title,
+        content,
+        createdAt,
+        updatedAt: updatedAtRaw === "" ? undefined : updatedAtRaw,
+      },
+      rowNumber,
+    );
+  });
+}
+
+function validateNote(value: unknown, rowNumber: number): Note {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Row ${rowNumber} is not a note object.`);
+  }
+
+  const record = value as Record<string, unknown>;
+  const id = requireNonEmptyString(record.id, "id", rowNumber);
+  const title = requireNonEmptyString(record.title, "title", rowNumber);
+  const content = requireNonEmptyString(record.content, "content", rowNumber);
+  const createdAt = requireDateString(record.createdAt, "createdAt", rowNumber);
+
+  const note: Note = { id, title, content, createdAt };
+
+  if ("updatedAt" in record && record.updatedAt != null && record.updatedAt !== "") {
+    if (typeof record.updatedAt !== "string") {
+      throw new Error(`Row ${rowNumber} has an invalid updatedAt.`);
+    }
+    note.updatedAt = requireDateString(
+      record.updatedAt,
+      "updatedAt",
+      rowNumber,
+    );
+  }
+
+  return note;
+}
+
+function requireNonEmptyString(
+  value: unknown,
+  field: string,
+  rowNumber: number,
+): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`Row ${rowNumber} is missing a ${field}.`);
+  }
+  return value;
+}
+
+function requireDateString(
+  value: unknown,
+  field: string,
+  rowNumber: number,
+): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`Row ${rowNumber} is missing a ${field}.`);
+  }
+  if (Number.isNaN(Date.parse(value))) {
+    throw new Error(`Row ${rowNumber} has an invalid ${field}.`);
+  }
+  return value;
+}
+
+function assertUniqueIds(notes: Note[]) {
+  const seen = new Set<string>();
+  for (const note of notes) {
+    if (seen.has(note.id)) {
+      throw new Error(`Duplicate id in import: ${note.id}.`);
+    }
+    seen.add(note.id);
+  }
+}
+
+/** RFC 4180-style CSV parser for quoted fields and escaped quotes. */
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]!;
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (next === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+      continue;
+    }
+
+    if (char === ",") {
+      row.push(field);
+      field = "";
+      continue;
+    }
+
+    if (char === "\n") {
+      row.push(field);
+      field = "";
+      if (row.length > 1 || row[0] !== "") {
+        rows.push(row);
+      }
+      row = [];
+      continue;
+    }
+
+    if (char === "\r") {
+      continue;
+    }
+
+    field += char;
+  }
+
+  if (inQuotes) {
+    throw new Error("CSV has an unclosed quote.");
+  }
+
+  row.push(field);
+  if (row.length > 1 || row[0] !== "") {
+    rows.push(row);
+  }
+
+  return rows;
+}
