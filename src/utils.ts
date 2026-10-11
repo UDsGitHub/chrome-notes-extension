@@ -1,3 +1,4 @@
+import { NOTE_TAG_MAX_LENGTH, NOTE_TAGS_MAX_COUNT } from "./constants.js";
 import type { NotesList } from "./types.js";
 
 export function truncateText(text: string, maxLength: number) {
@@ -8,6 +9,94 @@ export function truncateText(text: string, maxLength: number) {
   return lastSpace > 0
     ? `${truncatedText.slice(0, lastSpace)}...`
     : truncatedText;
+}
+
+/** Trim, dedupe (case-insensitive), and cap tag length/count. */
+export function normalizeTags(input: unknown): string[] {
+  const raw: unknown[] = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split(/[,;]/)
+      : [];
+
+  const seen = new Set<string>();
+  const tags: string[] = [];
+
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const tag = item.trim().replace(/\s+/g, " ").slice(0, NOTE_TAG_MAX_LENGTH);
+    if (!tag) continue;
+
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tags.push(tag);
+
+    if (tags.length >= NOTE_TAGS_MAX_COUNT) break;
+  }
+
+  return tags;
+}
+
+export function parseTagsInput(text: string): string[] {
+  return normalizeTags(text);
+}
+
+export function formatTagsInput(tags: string[] | undefined): string {
+  return (tags ?? []).join(", ");
+}
+
+export function serializeTagsCsv(tags: string[] | undefined): string {
+  return (tags ?? []).join(";");
+}
+
+export function noteMatchesQuery(
+  note: { title: string; content: string; tags?: string[] },
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (note.title.toLowerCase().includes(q)) return true;
+  if (note.content.toLowerCase().includes(q)) return true;
+  return (note.tags ?? []).some((tag) => tag.toLowerCase().includes(q));
+}
+
+export function noteHasTag(
+  note: { tags?: string[] },
+  tag: string | null | undefined,
+): boolean {
+  const active = tag?.trim();
+  if (!active) return true;
+  const key = active.toLowerCase();
+  return (note.tags ?? []).some((entry) => entry.toLowerCase() === key);
+}
+
+/** Tag chip scopes the set; search then narrows within it. */
+export function noteMatchesFilters(
+  note: { title: string; content: string; tags?: string[] },
+  options: { query?: string; tag?: string | null } = {},
+): boolean {
+  if (!noteHasTag(note, options.tag)) return false;
+  return noteMatchesQuery(note, options.query ?? "");
+}
+
+/** Unique tags across notes, sorted case-insensitively. */
+export function collectUniqueTags(notes: NotesList): string[] {
+  const seen = new Set<string>();
+  const tags: string[] = [];
+
+  for (const note of Object.values(notes)) {
+    for (const tag of note.tags ?? []) {
+      const key = tag.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tags.push(tag);
+    }
+  }
+
+  return tags.toSorted((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
+  );
 }
 
 export const dateFormatter = new Intl.DateTimeFormat("en-US", {

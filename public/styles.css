@@ -75,6 +75,101 @@ main {
   gap: 8px;
 }
 
+.notes-search {
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.notes-search__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.notes-search__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notes-search__icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-secondary-color);
+  pointer-events: none;
+}
+
+.notes-search__input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95em;
+  color: var(--text-color);
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px 8px 34px;
+  outline-color: var(--outline-color);
+}
+
+.notes-search__input::placeholder {
+  color: var(--text-secondary-color);
+}
+
+.notes-tag-filters {
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.notes-tag-filters__list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.notes-tag-filters__list::-webkit-scrollbar {
+  display: none;
+}
+
+.notes-tag-filter {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background-color: var(--surface-color);
+  color: var(--text-secondary-color);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.notes-tag-filter:hover {
+  color: var(--text-hover-color);
+  border-color: var(--border-strong);
+}
+
+.notes-tag-filter.is-selected {
+  color: var(--primary-text-color);
+  background-color: var(--primary-btn);
+  border-color: var(--primary-btn);
+}
+
+.notes-tag-filter.is-selected:hover {
+  color: var(--primary-text-color);
+  background-color: var(--primary-btn-hover);
+  border-color: var(--primary-btn-hover);
+}
+
 .notes-list__wrapper {
   flex-grow: 1;
   position: relative;
@@ -547,10 +642,20 @@ header {
 .notes-sections[hidden],
 .notes-section[hidden],
 .notes-section-divider[hidden],
+.notes-tag-filters[hidden],
 .notes-list[hidden],
 .notes-empty[hidden],
+.notes-filter-empty[hidden],
+.notes-list-item__tags[hidden],
 .cancel-edit-btn[hidden] {
   display: none;
+}
+
+.notes-filter-empty {
+  margin: 0;
+  padding: 24px 12px;
+  color: var(--text-secondary-color);
+  text-align: center;
 }
 
 @keyframes noteEnter {
@@ -650,6 +755,33 @@ header {
   color: var(--text-color);
 }
 
+.notes-list-item__tags {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.notes-list-item__tag {
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background-color: var(--surface-muted);
+  color: var(--text-secondary-color);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.notes-list-item__tag:hover {
+  color: var(--text-hover-color);
+  border-color: var(--border-strong);
+}
+
 .notes-list-item__content-truncate {
   white-space: nowrap;
   overflow: hidden;
@@ -679,6 +811,18 @@ header {
 
 .pin-btn.is-pinned:hover {
   color: var(--text-hover-color);
+}
+
+.pin-btn__icon--unpin {
+  display: none;
+}
+
+.pin-btn.is-pinned .pin-btn__icon--pin {
+  display: none;
+}
+
+.pin-btn.is-pinned .pin-btn__icon--unpin {
+  display: block;
 }
 
 .icon {
@@ -739,6 +883,36 @@ header {
   resize: none;
   overflow-y: auto;
   font-size: 1.15em;
+}
+
+.notes-tags-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--accent-color);
+}
+
+.notes-tags-field__icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-secondary-color);
+  pointer-events: none;
+}
+
+#notes-tags-input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.9em;
+  color: inherit;
+  background-color: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px 8px 36px;
+  outline-color: var(--outline-color);
+}
+
+#notes-tags-input::placeholder {
+  color: var(--text-secondary-color);
 }
 
 #notes-input-submit {

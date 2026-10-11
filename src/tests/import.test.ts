@@ -48,6 +48,7 @@ const sampleNotes: Note[] = [
     content: 'And he said "I am your father..."',
     createdAt,
     pinned: false,
+    tags: [],
   },
   {
     id: "2",
@@ -56,6 +57,7 @@ const sampleNotes: Note[] = [
     createdAt,
     updatedAt,
     pinned: false,
+    tags: [],
   },
 ];
 
@@ -122,7 +124,7 @@ describe("parseNotes", () => {
     expect(() =>
       parseNotes('id,title\n"1","a"', { filename: "notes.csv" }),
     ).toThrow(
-      "CSV header must be id,title,content,createdAt,updatedAt,order,pinned.",
+      "CSV header must be id,title,content,createdAt,updatedAt,order,pinned,tags.",
     );
   });
 
@@ -140,6 +142,7 @@ describe("parseNotes", () => {
         createdAt,
         order: 3,
         pinned: false,
+        tags: [],
       },
     ]);
   });
@@ -158,11 +161,31 @@ describe("parseNotes", () => {
         createdAt,
         order: 3,
         pinned: true,
+        tags: [],
       },
     ]);
   });
 
-  it("defaults missing pinned to false in JSON", () => {
+  it("parses CSV with a tags column", () => {
+    const csv = [
+      "id,title,content,createdAt,updatedAt,order,pinned,tags",
+      `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",3,false,"work;ideas"`,
+    ].join("\n");
+
+    expect(parseNotes(csv, { format: "csv" })).toEqual([
+      {
+        id: "1",
+        title: "Hello, World",
+        content: 'And he said "I am your father..."',
+        createdAt,
+        order: 3,
+        pinned: false,
+        tags: ["work", "ideas"],
+      },
+    ]);
+  });
+
+  it("defaults missing pinned and tags in JSON", () => {
     const json = JSON.stringify([
       { id: "1", title: "a", content: "b", createdAt },
     ]);
@@ -174,6 +197,7 @@ describe("parseNotes", () => {
         content: "b",
         createdAt,
         pinned: false,
+        tags: [],
       },
     ]);
   });
@@ -256,6 +280,7 @@ describe("importNotesST", () => {
         updatedAt,
         order: 1,
         pinned: false,
+        tags: [],
       },
     });
   });
@@ -296,6 +321,7 @@ describe("importNotesST", () => {
         createdAt,
         order: 0,
         pinned: false,
+        tags: [],
       },
       "2": {
         title: "Second",
@@ -304,6 +330,7 @@ describe("importNotesST", () => {
         updatedAt,
         order: 1,
         pinned: false,
+        tags: [],
       },
     });
   });
@@ -334,6 +361,7 @@ describe("importNotesST", () => {
         createdAt,
         order: 0,
         pinned: true,
+        tags: [],
       },
       "unpinned-1": {
         title: "Unpinned",
@@ -341,6 +369,7 @@ describe("importNotesST", () => {
         createdAt,
         order: 0,
         pinned: false,
+        tags: [],
       },
     });
   });

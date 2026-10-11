@@ -3,6 +3,7 @@ import {
   LOADER_MIN_VISIBLE,
   LOADER_SHOW_DELAY,
   NOTE_BODY_MAX_DISPLAY_LENGTH,
+  SEARCH_DEBOUNCE_MS,
 } from "./constants.js";
 import { exportCSV, exportJSON } from "./export.js";
 import { parseNotes, type ImportFormat } from "./import.js";
@@ -13,7 +14,7 @@ import {
   syncPendingNote,
 } from "./storage.js";
 import { Toaster } from "./toast.js";
-import { truncateText } from "./utils.js";
+import { parseTagsInput, truncateText } from "./utils.js";
 import type Sortable from "sortablejs";
 
 // ELEMENTS
@@ -25,6 +26,18 @@ const notesTitleInput = document.getElementById(
 const notesInput = document.getElementById(
   "notes-input",
 ) as HTMLTextAreaElement;
+const notesTagsInput = document.getElementById(
+  "notes-tags-input",
+) as HTMLInputElement;
+const notesSearchInput = document.getElementById(
+  "notes-search-input",
+) as HTMLInputElement;
+const notesTagFilters = document.getElementById(
+  "notes-tag-filters",
+) as HTMLElement;
+const notesTagFiltersList = document.getElementById(
+  "notes-tag-filters-list",
+) as HTMLElement;
 const notesListWrapper = document.querySelector<HTMLElement>(
   ".notes-list__wrapper",
 );
@@ -41,6 +54,9 @@ const notesTemplate = document.getElementById(
   "notes-list-item__template",
 ) as HTMLTemplateElement;
 const notesEmpty = document.querySelector(".notes-empty") as HTMLElement;
+const notesFilterEmpty = document.querySelector(
+  ".notes-filter-empty",
+) as HTMLElement;
 const cancelEditBtn = document.querySelector<HTMLElement>(".cancel-edit-btn");
 const exportPopover = document.querySelector<HTMLElement>("#export-popover");
 const loadingDialog = document.querySelector<HTMLDialogElement>("#loader");
@@ -64,8 +80,8 @@ const importSubmitBtn =
   document.querySelector<HTMLButtonElement>("#import-submit");
 
 const IMPORT_PLACEHOLDERS: Record<ImportFormat, string> = {
-  json: '[{"id":"...","title":"...","content":"...","createdAt":"...","order":0,"pinned":false}]',
-  csv: "id,title,content,createdAt,updatedAt,order,pinned",
+  json: '[{"id":"...","title":"...","content":"...","createdAt":"...","order":0,"pinned":false,"tags":["work"]}]',
+  csv: "id,title,content,createdAt,updatedAt,order,pinned,tags",
 };
 const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
   json: `[
@@ -76,11 +92,12 @@ const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
     "createdAt": "2026-09-10T12:00:00.000Z",
     "updatedAt": "2026-09-16T12:00:00.000Z",
     "order": 1,
-    "pinned": false
+    "pinned": false,
+    "tags": ["work", "ideas"]
   }
 ]`,
-  csv: `id,title,content,createdAt,updatedAt,order,pinned
-"note-…","Title","Note body","2026-09-10T12:00:00.000Z","",1,false`,
+  csv: `id,title,content,createdAt,updatedAt,order,pinned,tags
+"note-…","Title","Note body","2026-09-10T12:00:00.000Z","",1,false,"work;ideas"`,
 };
 const DROPZONE_DEFAULT_LABEL =
   "Drop a .json or .csv file here, or click to browse";
@@ -117,6 +134,10 @@ const initNotesSortable = () => {
 
   pinnedSortable?.destroy();
   unpinnedSortable?.destroy();
+  pinnedSortable = null;
+  unpinnedSortable = null;
+
+  if (actions.isFiltering()) return;
 
   if (pinnedNotesList) {
     pinnedSortable = createNotesSortable(pinnedNotesList, true);
@@ -133,6 +154,9 @@ const actions = new NoteActions(
   sectionDivider,
   notesSections,
   notesEmpty,
+  notesFilterEmpty,
+  notesTagFilters,
+  notesTagFiltersList,
   notesTemplate,
   initNotesSortable,
 );
@@ -154,6 +178,13 @@ isLoading.subscribe((value) => {
       });
     notesTitleInput?.setAttribute("disabled", "");
     notesInput?.setAttribute("disabled", "");
+    notesTagsInput?.setAttribute("disabled", "");
+    notesSearchInput?.setAttribute("disabled", "");
+    notesTagFiltersList
+      ?.querySelectorAll<HTMLButtonElement>(".notes-tag-filter")
+      .forEach((chip) => {
+        chip.disabled = true;
+      });
     cancelEditBtn?.setAttribute("disabled", "");
     document.querySelector("#notes-input-submit")?.setAttribute("disabled", "");
   } else {
@@ -167,6 +198,13 @@ isLoading.subscribe((value) => {
       });
     notesTitleInput?.removeAttribute("disabled");
     notesInput?.removeAttribute("disabled");
+    notesTagsInput?.removeAttribute("disabled");
+    notesSearchInput?.removeAttribute("disabled");
+    notesTagFiltersList
+      ?.querySelectorAll<HTMLButtonElement>(".notes-tag-filter")
+      .forEach((chip) => {
+        chip.disabled = false;
+      });
     cancelEditBtn?.removeAttribute("disabled");
     document.querySelector("#notes-input-submit")?.removeAttribute("disabled");
   }
@@ -180,6 +218,9 @@ const cleanUp = () => {
   }
   if (notesTitleInput) {
     notesTitleInput.value = "";
+  }
+  if (notesTagsInput) {
+    notesTagsInput.value = "";
   }
   if (activeNoteId) {
     const activeNote = document.getElementById(activeNoteId);
@@ -322,6 +363,7 @@ const handleEditNoteClick = (target: Element) => {
   activeNoteId = listItem.id;
   notesTitleInput.value = noteTitle;
   notesInput.value = noteContent;
+  notesTagsInput.value = listItem.getAttribute("data-tags") ?? "";
   notesInput.focus();
   return true;
 };
@@ -352,6 +394,41 @@ const handlePinNoteClick = async (target: Element) => {
 };
 
 /** Returns true when the click was handled so the notes-list dispatcher can stop. */
+const handleNoteTagClick = (target: Element) => {
+  const tagBtn = target.closest(".notes-list-item__tag");
+  if (!(tagBtn instanceof HTMLElement)) return false;
+
+  const tag = tagBtn.textContent?.trim();
+  if (!tag) return true;
+
+  void actions.setTagFilter(tag);
+  return true;
+};
+
+const handleTagFilterBarClick = (e: MouseEvent) => {
+  if (!(e.target instanceof Element)) return;
+
+  const chip = e.target.closest(".notes-tag-filter");
+  if (!(chip instanceof HTMLElement)) return;
+
+  if (chip.dataset.tagAll === "true") {
+    void actions.setTagFilter(null);
+    return;
+  }
+
+  const tag = chip.dataset.tag;
+  if (!tag) return;
+
+  // Selecting the active chip again clears back to All.
+  if (actions.filterTag?.toLowerCase() === tag.toLowerCase()) {
+    void actions.setTagFilter(null);
+    return;
+  }
+
+  void actions.setTagFilter(tag);
+};
+
+/** Returns true when the click was handled so the notes-list dispatcher can stop. */
 const handleCopyNoteClick = (target: Element) => {
   const listItem = target.closest(".notes-list-item");
   if (!listItem) return false;
@@ -369,6 +446,7 @@ const handleNotesListClick = async (e: MouseEvent) => {
   if (e.target.closest(".drag-handle")) return;
 
   if (handleTruncationToggle(e.target)) return;
+  if (handleNoteTagClick(e.target)) return;
   if (handleEditNoteClick(e.target)) return;
   if (await handlePinNoteClick(e.target)) return;
   if (await handleDeleteNoteClick(e.target)) return;
@@ -557,8 +635,14 @@ form?.addEventListener("submit", async (e) => {
 
   const noteTitleValue = notesTitleInput.value.trim();
   const noteInputValue = notesInput.value.trim();
+  const noteTags = parseTagsInput(notesTagsInput?.value ?? "");
   if (noteTitleValue && noteInputValue) {
-    await actions.addNote(noteTitleValue, noteInputValue, activeNoteId);
+    await actions.addNote(
+      noteTitleValue,
+      noteInputValue,
+      activeNoteId,
+      noteTags,
+    );
     if (activeNoteId) {
       const listItem = document.getElementById(activeNoteId);
       if (listItem) {
@@ -568,6 +652,16 @@ form?.addEventListener("submit", async (e) => {
     cleanUp();
   }
 });
+
+let searchFilterTimer: ReturnType<typeof setTimeout> | undefined;
+notesSearchInput?.addEventListener("input", () => {
+  window.clearTimeout(searchFilterTimer);
+  searchFilterTimer = window.setTimeout(() => {
+    void actions.setFilter(notesSearchInput.value);
+  }, SEARCH_DEBOUNCE_MS);
+});
+
+notesTagFiltersList?.addEventListener("click", handleTagFilterBarClick);
 
 notesSections?.addEventListener("click", handleNotesListClick);
 

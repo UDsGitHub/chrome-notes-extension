@@ -1,6 +1,6 @@
 import { NOTES_STORAGE_KEY, PENDING_NOTE_KEY } from "./constants.js";
 import type { CreateNoteDto, Note, NoteContent, NotesList } from "./types.js";
-import { getMaxNoteOrder } from "./utils.js";
+import { getMaxNoteOrder, normalizeTags } from "./utils.js";
 
 export const getNotesST = async (): Promise<NotesList | null> => {
   const result = await chrome.storage.local.get(NOTES_STORAGE_KEY);
@@ -51,6 +51,7 @@ export const addNoteST = async (note: CreateNoteDto) => {
       createdAt: new Date().toISOString(),
       order,
       pinned: false,
+      tags: normalizeTags(note.tags),
     };
 
     notes[id] = createData;
@@ -76,6 +77,7 @@ export const updateNoteST = async (id: string, note: Partial<NoteContent>) => {
       ...existing,
       ...note,
       updatedAt: new Date().toISOString(),
+      ...("tags" in note ? { tags: normalizeTags(note.tags) } : {}),
     };
     notes[id] = updateData;
     await chrome.storage.local.set({
@@ -184,6 +186,7 @@ export const importNotesST = async (incoming: Note[]) => {
       ...content,
       pinned,
       order,
+      tags: normalizeTags(content.tags),
     };
     imported++;
   }

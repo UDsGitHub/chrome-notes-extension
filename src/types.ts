@@ -1,6 +1,7 @@
 export type CreateNoteDto = {
   title: string;
   content: string;
+  tags?: string[];
 };
 
 export type NoteContent = CreateNoteDto & {
