@@ -175,6 +175,20 @@ main {
   position: relative;
   min-height: 0;
   overflow-y: auto;
+  padding-top: 4px;
+}
+
+/* Zero-height host so toasts sit above the composer without affecting layout. */
+.notes-toaster {
+  position: relative;
+  z-index: 20;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.notes-toaster .toast {
+  pointer-events: auto;
 }
 
 h2 {
@@ -1068,10 +1082,10 @@ header {
   color: var(--grey-300);
   position: absolute;
   inset: unset;
-  bottom: -24px;
+  bottom: 12px;
   right: 12px;
   opacity: 0;
-  transform: translateY(0) translateX(0)
+  transform: translateY(12px) translateX(0)
     scale(calc(1 - var(--stack-index) * 0.05));
   will-change: transform, opacity;
   transition:
@@ -1117,12 +1131,12 @@ header {
 
 .toast.open {
   opacity: calc(1 - (var(--stack-index) * 0.25));
-  transform: translateY(calc(-42px + (var(--stack-index) * -5px)))
+  transform: translateY(calc(var(--stack-index) * -5px))
     translateX(calc(var(--stack-index) * 5px))
     scale(calc(1 - var(--stack-index) * 0.05));
 
   @starting-style {
-    transform: translateY(0) scale(1);
+    transform: translateY(12px) scale(1);
     opacity: 0;
   }
 }
