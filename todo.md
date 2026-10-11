@@ -9,13 +9,5 @@
 - [x] import as csv or json
 - [x] update click delegation setup to stop propagation early after action is performed.
 - [ ] add drag to reorder
-- [ ] add entry and exit animations
+- [x] add entry and exit animations
 - [ ] add note groups
-
-
-## Import JSON/CSV
-- importing json or csv would require user file input to provide the json or csv
-- I would also like to include a text area for manually pasting the json or csv.
-- on submit, we validate the json against our types and if good, we import, else
-- we throw error in the via the button. the button would move 
-- from default to loading to error or success
