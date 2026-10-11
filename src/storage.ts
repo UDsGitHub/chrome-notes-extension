@@ -45,11 +45,12 @@ export const addNoteST = async (note: CreateNoteDto) => {
   try {
     const notes = (await getNotesST()) ?? {};
     const id = `note-${crypto.randomUUID()}`;
-    const order = getMaxNoteOrder(notes) + 1;
+    const order = getMaxNoteOrder(notes, false) + 1;
     const createData = {
       ...note,
       createdAt: new Date().toISOString(),
       order,
+      pinned: false,
     };
 
     notes[id] = createData;
@@ -87,6 +88,34 @@ export const updateNoteST = async (id: string, note: Partial<NoteContent>) => {
   }
 };
 
+export const setNotePinnedST = async (id: string, pinned: boolean) => {
+  try {
+    const notes = (await getNotesST()) ?? {};
+    const existing = notes[id];
+    if (!existing || typeof existing !== "object") {
+      throw new Error(`Note not found: ${id}`);
+    }
+
+    if (Boolean(existing.pinned) === pinned) {
+      return { id, ...existing };
+    }
+
+    const updateData: NoteContent = {
+      ...existing,
+      pinned,
+      order: getMaxNoteOrder(notes, pinned) + 1,
+    };
+    notes[id] = updateData;
+    await chrome.storage.local.set({
+      [NOTES_STORAGE_KEY]: notes,
+    });
+
+    return { id, ...updateData };
+  } catch (error) {
+    console.error("Failed to update pin state: ", error);
+  }
+};
+
 export const deleteNoteST = async (noteId: string) => {
   const notes = await getNotesST();
   if (!notes) {
@@ -99,12 +128,19 @@ export const deleteNoteST = async (noteId: string) => {
   });
 };
 
-/** `orderedIds` is top-to-bottom display order. */
-export const reorderNotesST = async (orderedIds: string[]) => {
+/** `orderedIds` is top-to-bottom display order within one pin section. */
+export const reorderNotesST = async (
+  orderedIds: string[],
+  pinned: boolean,
+) => {
   const notes = (await getNotesST()) ?? {};
-  const count = orderedIds.length;
+  const sectionIds = orderedIds.filter((id) => {
+    const existing = notes[id];
+    return existing && Boolean(existing.pinned) === pinned;
+  });
+  const count = sectionIds.length;
 
-  orderedIds.forEach((id, index) => {
+  sectionIds.forEach((id, index) => {
     const existing = notes[id];
     if (!existing) return;
     notes[id] = {
@@ -122,7 +158,8 @@ export const importNotesST = async (incoming: Note[]) => {
   const notes = (await getNotesST()) ?? {};
   let imported = 0;
   let skipped = 0;
-  let nextOrder = getMaxNoteOrder(notes);
+  let nextPinnedOrder = getMaxNoteOrder(notes, true);
+  let nextUnpinnedOrder = getMaxNoteOrder(notes, false);
 
   for (const note of incoming) {
     if (notes[note.id]) {
@@ -131,10 +168,22 @@ export const importNotesST = async (incoming: Note[]) => {
     }
 
     const { id, ...content } = note;
-    nextOrder += 1;
+    const pinned = Boolean(content.pinned);
+    let order = content.order;
+    if (typeof order !== "number") {
+      if (pinned) {
+        nextPinnedOrder += 1;
+        order = nextPinnedOrder;
+      } else {
+        nextUnpinnedOrder += 1;
+        order = nextUnpinnedOrder;
+      }
+    }
+
     notes[id] = {
       ...content,
-      order: typeof content.order === "number" ? content.order : nextOrder,
+      pinned,
+      order,
     };
     imported++;
   }

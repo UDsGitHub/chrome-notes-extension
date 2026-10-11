@@ -47,6 +47,7 @@ const sampleNotes: Note[] = [
     title: "Hello, World",
     content: 'And he said "I am your father..."',
     createdAt,
+    pinned: false,
   },
   {
     id: "2",
@@ -54,10 +55,29 @@ const sampleNotes: Note[] = [
     content: "more content",
     createdAt,
     updatedAt,
+    pinned: false,
   },
 ];
 
-const sampleJSON = JSON.stringify(sampleNotes, undefined, 2);
+const sampleJSON = JSON.stringify(
+  [
+    {
+      id: "1",
+      title: "Hello, World",
+      content: 'And he said "I am your father..."',
+      createdAt,
+    },
+    {
+      id: "2",
+      title: "Second",
+      content: "more content",
+      createdAt,
+      updatedAt,
+    },
+  ],
+  undefined,
+  2,
+);
 
 const sampleCSV = [
   "id,title,content,createdAt,updatedAt",
@@ -102,7 +122,7 @@ describe("parseNotes", () => {
     expect(() =>
       parseNotes('id,title\n"1","a"', { filename: "notes.csv" }),
     ).toThrow(
-      "CSV header must be id,title,content,createdAt,updatedAt,order.",
+      "CSV header must be id,title,content,createdAt,updatedAt,order,pinned.",
     );
   });
 
@@ -119,6 +139,41 @@ describe("parseNotes", () => {
         content: 'And he said "I am your father..."',
         createdAt,
         order: 3,
+        pinned: false,
+      },
+    ]);
+  });
+
+  it("parses CSV with a pinned column", () => {
+    const csv = [
+      "id,title,content,createdAt,updatedAt,order,pinned",
+      `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",3,true`,
+    ].join("\n");
+
+    expect(parseNotes(csv, { format: "csv" })).toEqual([
+      {
+        id: "1",
+        title: "Hello, World",
+        content: 'And he said "I am your father..."',
+        createdAt,
+        order: 3,
+        pinned: true,
+      },
+    ]);
+  });
+
+  it("defaults missing pinned to false in JSON", () => {
+    const json = JSON.stringify([
+      { id: "1", title: "a", content: "b", createdAt },
+    ]);
+
+    expect(parseNotes(json, { format: "json" })).toEqual([
+      {
+        id: "1",
+        title: "a",
+        content: "b",
+        createdAt,
+        pinned: false,
       },
     ]);
   });
@@ -200,6 +255,7 @@ describe("importNotesST", () => {
         createdAt,
         updatedAt,
         order: 1,
+        pinned: false,
       },
     });
   });
@@ -239,6 +295,7 @@ describe("importNotesST", () => {
         content: 'And he said "I am your father..."',
         createdAt,
         order: 0,
+        pinned: false,
       },
       "2": {
         title: "Second",
@@ -246,6 +303,44 @@ describe("importNotesST", () => {
         createdAt,
         updatedAt,
         order: 1,
+        pinned: false,
+      },
+    });
+  });
+
+  it("imports pinned notes into the pinned order lane", async () => {
+    const result = await importNotesST([
+      {
+        id: "pinned-1",
+        title: "Pinned",
+        content: "keep me up",
+        createdAt,
+        pinned: true,
+      },
+      {
+        id: "unpinned-1",
+        title: "Unpinned",
+        content: "below",
+        createdAt,
+        pinned: false,
+      },
+    ]);
+
+    expect(result).toEqual({ imported: 2, skipped: 0 });
+    expect(local.items[NOTES_STORAGE_KEY]).toEqual({
+      "pinned-1": {
+        title: "Pinned",
+        content: "keep me up",
+        createdAt,
+        order: 0,
+        pinned: true,
+      },
+      "unpinned-1": {
+        title: "Unpinned",
+        content: "below",
+        createdAt,
+        order: 0,
+        pinned: false,
       },
     });
   });

@@ -1,6 +1,7 @@
 import type { Note } from "./types.js";
 
-const CSV_HEADER = "id,title,content,createdAt,updatedAt,order";
+const CSV_HEADER = "id,title,content,createdAt,updatedAt,order,pinned";
+const CSV_HEADER_WITH_ORDER = "id,title,content,createdAt,updatedAt,order";
 const CSV_HEADER_LEGACY = "id,title,content,createdAt,updatedAt";
 
 export type ImportFormat = "json" | "csv";
@@ -59,7 +60,8 @@ function parseCSVNotes(text: string): Note[] {
   }
 
   const header = rows[0]!.join(",");
-  const hasOrder = header === CSV_HEADER;
+  const hasPinned = header === CSV_HEADER;
+  const hasOrder = hasPinned || header === CSV_HEADER_WITH_ORDER;
   if (!hasOrder && header !== CSV_HEADER_LEGACY) {
     throw new Error(`CSV header must be ${CSV_HEADER}.`);
   }
@@ -68,7 +70,7 @@ function parseCSVNotes(text: string): Note[] {
     return [];
   }
 
-  const expectedColumns = hasOrder ? 6 : 5;
+  const expectedColumns = hasPinned ? 7 : hasOrder ? 6 : 5;
 
   return rows.slice(1).map((row, index) => {
     const rowNumber = index + 2;
@@ -76,14 +78,16 @@ function parseCSVNotes(text: string): Note[] {
       throw new Error(`Row ${rowNumber} has the wrong number of columns.`);
     }
 
-    const [id, title, content, createdAt, updatedAtRaw, orderRaw] = row as [
-      string,
-      string,
-      string,
-      string,
-      string,
-      string?,
-    ];
+    const [id, title, content, createdAt, updatedAtRaw, orderRaw, pinnedRaw] =
+      row as [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string?,
+        string?,
+      ];
 
     return validateNote(
       {
@@ -95,6 +99,7 @@ function parseCSVNotes(text: string): Note[] {
         ...(hasOrder && orderRaw !== ""
           ? { order: Number(orderRaw) }
           : {}),
+        ...(hasPinned ? { pinned: pinnedRaw } : {}),
       },
       rowNumber,
     );
@@ -112,7 +117,13 @@ function validateNote(value: unknown, rowNumber: number): Note {
   const content = requireNonEmptyString(record.content, "content", rowNumber);
   const createdAt = requireDateString(record.createdAt, "createdAt", rowNumber);
 
-  const note: Note = { id, title, content, createdAt };
+  const note: Note = {
+    id,
+    title,
+    content,
+    createdAt,
+    pinned: false,
+  };
 
   if ("updatedAt" in record && record.updatedAt != null && record.updatedAt !== "") {
     if (typeof record.updatedAt !== "string") {
@@ -134,7 +145,25 @@ function validateNote(value: unknown, rowNumber: number): Note {
     note.order = order;
   }
 
+  if ("pinned" in record && record.pinned != null && record.pinned !== "") {
+    note.pinned = parsePinned(record.pinned, rowNumber);
+  }
+
   return note;
+}
+
+function parsePinned(value: unknown, rowNumber: number): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
+  throw new Error(`Row ${rowNumber} has an invalid pinned value.`);
 }
 
 function requireNonEmptyString(

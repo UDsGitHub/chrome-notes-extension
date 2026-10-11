@@ -19,12 +19,22 @@ function noteTimestamp(note: NotesList[string]) {
   return new Date(note.updatedAt ?? note.createdAt).getTime();
 }
 
+function isPinned(note: NotesList[string]) {
+  return Boolean(note.pinned);
+}
+
 /**
  * Returns notes in display order: top of the list first.
- * Prefers manual `order` (higher = nearer top). Falls back to recency.
+ * Pinned notes come first, then manual `order` (higher = nearer top).
  */
 export function getSortedNotes(notes: NotesList) {
   return Object.entries(notes).toSorted((a, b) => {
+    const pinnedA = isPinned(a[1]);
+    const pinnedB = isPinned(b[1]);
+    if (pinnedA !== pinnedB) {
+      return pinnedA ? -1 : 1;
+    }
+
     const orderA = a[1].order;
     const orderB = b[1].order;
     const hasOrderA = typeof orderA === "number";
@@ -37,14 +47,17 @@ export function getSortedNotes(notes: NotesList) {
       return hasOrderA ? -1 : 1;
     }
 
-    // Newest first when no manual order is present yet.
     return noteTimestamp(b[1]) - noteTimestamp(a[1]);
   });
 }
 
-export function getMaxNoteOrder(notes: NotesList) {
+export function getMaxNoteOrder(
+  notes: NotesList,
+  pinned: boolean | undefined = undefined,
+) {
   let max = -1;
   for (const note of Object.values(notes)) {
+    if (pinned !== undefined && isPinned(note) !== pinned) continue;
     if (typeof note.order === "number" && note.order > max) {
       max = note.order;
     }

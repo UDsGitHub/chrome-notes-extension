@@ -10,6 +10,6 @@
 - [x] update click delegation setup to stop propagation early after action is performed.
 - [x] add entry and exit animations
 - [x] add drag to reorder
+- [x] add a pinning feature
 - [ ] make title optional and update UI to reflect that
-- [ ] add a pinning feature
 - [ ] add note groups

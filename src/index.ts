@@ -28,7 +28,15 @@ const notesInput = document.getElementById(
 const notesListWrapper = document.querySelector<HTMLElement>(
   ".notes-list__wrapper",
 );
-const notesList = document.querySelector(".notes-list") as HTMLElement;
+const notesSections = document.querySelector(".notes-sections") as HTMLElement;
+const pinnedSection = document.getElementById("pinned-section") as HTMLElement;
+const sectionDivider = document.getElementById(
+  "notes-section-divider",
+) as HTMLElement;
+const pinnedNotesList = document.getElementById(
+  "pinned-notes-list",
+) as HTMLElement;
+const notesList = document.getElementById("notes-list") as HTMLElement;
 const notesTemplate = document.getElementById(
   "notes-list-item__template",
 ) as HTMLTemplateElement;
@@ -56,8 +64,8 @@ const importSubmitBtn =
   document.querySelector<HTMLButtonElement>("#import-submit");
 
 const IMPORT_PLACEHOLDERS: Record<ImportFormat, string> = {
-  json: '[{"id":"...","title":"...","content":"...","createdAt":"...","order":0}]',
-  csv: "id,title,content,createdAt,updatedAt,order",
+  json: '[{"id":"...","title":"...","content":"...","createdAt":"...","order":0,"pinned":false}]',
+  csv: "id,title,content,createdAt,updatedAt,order,pinned",
 };
 const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
   json: `[
@@ -67,11 +75,12 @@ const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
     "content": "Note body",
     "createdAt": "2026-09-10T12:00:00.000Z",
     "updatedAt": "2026-09-16T12:00:00.000Z",
-    "order": 1
+    "order": 1,
+    "pinned": false
   }
 ]`,
-  csv: `id,title,content,createdAt,updatedAt,order
-"note-…","Title","Note body","2026-09-10T12:00:00.000Z","",1`,
+  csv: `id,title,content,createdAt,updatedAt,order,pinned
+"note-…","Title","Note body","2026-09-10T12:00:00.000Z","",1,false`,
 };
 const DROPZONE_DEFAULT_LABEL =
   "Drop a .json or .csv file here, or click to browse";
@@ -79,16 +88,14 @@ const DROPZONE_DEFAULT_LABEL =
 // STATE
 
 let activeNoteId: string | null = null;
-let notesSortable: Sortable | null = null;
+let pinnedSortable: Sortable | null = null;
+let unpinnedSortable: Sortable | null = null;
 const indicatorTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
 const toaster = new Toaster(notesListWrapper);
 const isLoading = new Observable<boolean>(false);
 
-const initNotesSortable = () => {
-  if (!notesList || typeof window.Sortable === "undefined") return;
-
-  notesSortable?.destroy();
-  notesSortable = window.Sortable.create(notesList, {
+const createNotesSortable = (list: HTMLElement, pinned: boolean) => {
+  return window.Sortable.create(list, {
     animation: 150,
     handle: ".drag-handle",
     draggable: ".notes-list-item",
@@ -97,16 +104,34 @@ const initNotesSortable = () => {
     dragClass: "notes-list-item--drag",
     disabled: isLoading.get(),
     onEnd: () => {
-      const orderedIds = [...notesList.children]
+      const orderedIds = [...list.children]
         .map((el) => el.id)
         .filter((id) => id.length > 0);
-      void reorderNotesST(orderedIds);
+      void reorderNotesST(orderedIds, pinned);
     },
   });
 };
 
+const initNotesSortable = () => {
+  if (typeof window.Sortable === "undefined") return;
+
+  pinnedSortable?.destroy();
+  unpinnedSortable?.destroy();
+
+  if (pinnedNotesList) {
+    pinnedSortable = createNotesSortable(pinnedNotesList, true);
+  }
+  if (notesList) {
+    unpinnedSortable = createNotesSortable(notesList, false);
+  }
+};
+
 const actions = new NoteActions(
+  pinnedNotesList,
   notesList,
+  pinnedSection,
+  sectionDivider,
+  notesSections,
   notesEmpty,
   notesTemplate,
   initNotesSortable,
@@ -115,7 +140,8 @@ const actions = new NoteActions(
 // OBSERVERS
 
 isLoading.subscribe((value) => {
-  notesSortable?.option("disabled", value);
+  pinnedSortable?.option("disabled", value);
+  unpinnedSortable?.option("disabled", value);
 
   if (value) {
     document.querySelector(".export-btn")?.setAttribute("disabled", "");
@@ -313,6 +339,19 @@ const handleDeleteNoteClick = async (target: Element) => {
 };
 
 /** Returns true when the click was handled so the notes-list dispatcher can stop. */
+const handlePinNoteClick = async (target: Element) => {
+  const pinBtn = target.closest(".pin-btn");
+  if (!pinBtn) return false;
+
+  const listItem = pinBtn.closest(".notes-list-item");
+  if (!listItem) return true;
+
+  const nextPinned = pinBtn.getAttribute("aria-pressed") !== "true";
+  await actions.setPinned(listItem.id, nextPinned);
+  return true;
+};
+
+/** Returns true when the click was handled so the notes-list dispatcher can stop. */
 const handleCopyNoteClick = (target: Element) => {
   const listItem = target.closest(".notes-list-item");
   if (!listItem) return false;
@@ -331,6 +370,7 @@ const handleNotesListClick = async (e: MouseEvent) => {
 
   if (handleTruncationToggle(e.target)) return;
   if (handleEditNoteClick(e.target)) return;
+  if (await handlePinNoteClick(e.target)) return;
   if (await handleDeleteNoteClick(e.target)) return;
   handleCopyNoteClick(e.target);
 };
@@ -529,7 +569,7 @@ form?.addEventListener("submit", async (e) => {
   }
 });
 
-notesList?.addEventListener("click", handleNotesListClick);
+notesSections?.addEventListener("click", handleNotesListClick);
 
 cancelEditBtn?.addEventListener("click", (e: MouseEvent) => {
   e.preventDefault();

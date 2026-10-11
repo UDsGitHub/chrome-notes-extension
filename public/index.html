@@ -150,7 +150,23 @@
     <main>
       <div class="notes-list__wrapper">
         <p class="notes-empty">No notes yet. Add one below.</p>
-        <ul class="notes-list" hidden></ul>
+        <div class="notes-sections" hidden>
+          <section id="pinned-section" class="notes-section" hidden>
+            <p class="notes-section__label">Pinned</p>
+            <ul id="pinned-notes-list" class="notes-list"></ul>
+          </section>
+          <div
+            id="notes-section-divider"
+            class="notes-section-divider"
+            aria-hidden="true"
+            hidden
+          >
+            <div class="notes-section-divider__rule"></div>
+          </div>
+          <section id="unpinned-section" class="notes-section">
+            <ul id="notes-list" class="notes-list"></ul>
+          </section>
+        </div>
       </div>
       <form id="notes-form">
         <button class="cancel-edit-btn" hidden>Cancel</button>
@@ -244,6 +260,34 @@
           <button class="notes-list-item__truncateToggle">show more</button>
           <span class="notes-list-item__date"></span>
         </div>
+        <button
+          type="button"
+          class="notes-list-item__action pin-btn"
+          title="Pin note"
+          aria-label="Pin note"
+          aria-pressed="false"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12 17v5"
+            />
+            <path
+              d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"
+            />
+          </svg>
+        </button>
         <button class="notes-list-item__action edit-btn">
           <svg
             class="icon"
