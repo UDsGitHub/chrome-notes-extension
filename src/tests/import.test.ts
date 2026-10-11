@@ -101,7 +101,26 @@ describe("parseNotes", () => {
   it("rejects a bad CSV header", () => {
     expect(() =>
       parseNotes('id,title\n"1","a"', { filename: "notes.csv" }),
-    ).toThrow("CSV header must be id,title,content,createdAt,updatedAt.");
+    ).toThrow(
+      "CSV header must be id,title,content,createdAt,updatedAt,order.",
+    );
+  });
+
+  it("parses CSV with an order column", () => {
+    const csv = [
+      "id,title,content,createdAt,updatedAt,order",
+      `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",3`,
+    ].join("\n");
+
+    expect(parseNotes(csv, { format: "csv" })).toEqual([
+      {
+        id: "1",
+        title: "Hello, World",
+        content: 'And he said "I am your father..."',
+        createdAt,
+        order: 3,
+      },
+    ]);
   });
 
   it("rejects a row missing a title", () => {
@@ -161,6 +180,7 @@ describe("importNotesST", () => {
         title: "Existing",
         content: "keep me",
         createdAt,
+        order: 0,
       },
     };
 
@@ -172,12 +192,14 @@ describe("importNotesST", () => {
         title: "Existing",
         content: "keep me",
         createdAt,
+        order: 0,
       },
       "2": {
         title: "Second",
         content: "more content",
         createdAt,
         updatedAt,
+        order: 1,
       },
     });
   });
@@ -188,11 +210,13 @@ describe("importNotesST", () => {
         title: "Existing",
         content: "keep me",
         createdAt,
+        order: 0,
       },
       "2": {
         title: "Also existing",
         content: "keep me too",
         createdAt,
+        order: 1,
       },
     };
     local.items[NOTES_STORAGE_KEY] = { ...existing };
@@ -214,12 +238,14 @@ describe("importNotesST", () => {
         title: "Hello, World",
         content: 'And he said "I am your father..."',
         createdAt,
+        order: 0,
       },
       "2": {
         title: "Second",
         content: "more content",
         createdAt,
         updatedAt,
+        order: 1,
       },
     });
   });

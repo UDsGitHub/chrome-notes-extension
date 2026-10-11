@@ -56,30 +56,33 @@ describe("Export CSV or JSON", () => {
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
   });
 
-  it("sorts notes correctly", () => {
+  it("sorts notes by order with higher values first", () => {
     const sortedNotes = getSortedNotes({
       "1": {
         title: "title-1",
         content: "content",
         createdAt: new Date("09/10/2026").toISOString(),
+        order: 0,
       },
       "2": {
         title: "title-2",
         content: "content",
         createdAt: new Date("09/15/2026").toISOString(),
         updatedAt: new Date("09/16/2026").toISOString(),
+        order: 2,
       },
       "3": {
         title: "title-2",
         content: "content",
         createdAt: new Date("09/15/2026").toISOString(),
+        order: 1,
       },
     });
 
     expect(sortedNotes).toHaveLength(3);
-    expect(sortedNotes[0]?.[0]).toEqual("1");
+    expect(sortedNotes[0]?.[0]).toEqual("2");
     expect(sortedNotes[1]?.[0]).toEqual("3");
-    expect(sortedNotes[2]?.[0]).toEqual("2");
+    expect(sortedNotes[2]?.[0]).toEqual("1");
   });
 
   it("downloads JSON for notes from storage", async () => {
@@ -161,6 +164,7 @@ describe("Export CSV or JSON", () => {
         title: "Hello, World",
         content: 'And he said "I am your father..."',
         createdAt,
+        order: 0,
       },
     });
     mockDownloadState("complete", 1);
@@ -177,8 +181,8 @@ describe("Export CSV or JSON", () => {
     const csv = await lastBlob!.text();
     expect(csv).toBe(
       [
-        "id,title,content,createdAt,updatedAt",
-        `"1","Hello, World","And he said ""I am your father...""","${createdAt}",""`,
+        "id,title,content,createdAt,updatedAt,order",
+        `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",0`,
       ].join("\n"),
     );
   });

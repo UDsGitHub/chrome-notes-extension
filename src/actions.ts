@@ -11,18 +11,23 @@ import {
 } from "./storage.js";
 import type { Note } from "./types.js";
 import { dateFormatter, getSortedNotes, truncateText } from "./utils.js";
+
 export class NoteActions {
   notesList: HTMLElement;
   notesEmpty: HTMLElement;
   notesTemplate: HTMLTemplateElement;
+  onListRebuilt: (() => void) | undefined;
+
   constructor(
     notesList: HTMLElement,
     notesEmpty: HTMLElement,
     notesTemplate: HTMLTemplateElement,
+    onListRebuilt?: () => void,
   ) {
     this.notesList = notesList;
     this.notesEmpty = notesEmpty;
     this.notesTemplate = notesTemplate;
+    this.onListRebuilt = onListRebuilt;
   }
 
   async loadNotes(options: { animate?: boolean } = {}) {
@@ -32,18 +37,18 @@ export class NoteActions {
       if (notes) {
         const sortedNotes = getSortedNotes(notes);
 
-        const notesListEl = document.querySelector(".notes-list");
-        if (notesListEl) {
-          notesListEl.innerHTML = "";
-          sortedNotes.forEach((entry) => {
-            const note = {
-              id: entry[0],
-              ...entry[1],
-            };
+        this.notesList.innerHTML = "";
+        sortedNotes.forEach((entry) => {
+          const note = {
+            id: entry[0],
+            ...entry[1],
+          };
 
-            this.#createNoteElement(note, { animate: options.animate ?? false });
+          this.#createNoteElement(note, {
+            animate: options.animate ?? false,
+            placement: "end",
           });
-        }
+        });
       }
 
       syncPendingNote((value) => this.addNote("Untitled", value, null));
@@ -51,6 +56,7 @@ export class NoteActions {
       console.error("Failed to load notes from local storage: ", error);
     } finally {
       this.#syncEmptyState();
+      this.onListRebuilt?.();
     }
   }
 
@@ -61,7 +67,7 @@ export class NoteActions {
         content,
       });
       if (updatedNote) {
-        await this.loadNotes({ animate: true });
+        this.#updateNoteElement(updatedNote);
       }
 
       return updatedNote;
@@ -71,7 +77,10 @@ export class NoteActions {
         content,
       });
       if (createdNote) {
-        this.#createNoteElement(createdNote, { animate: true });
+        this.#createNoteElement(createdNote, {
+          animate: true,
+          placement: "start",
+        });
       }
 
       return createdNote;
@@ -112,7 +121,10 @@ export class NoteActions {
     this.notesList.hidden = !hasNotes;
   }
 
-  #createNoteElement(note: Note, options: { animate?: boolean } = {}) {
+  #createNoteElement(
+    note: Note,
+    options: { animate?: boolean; placement?: "start" | "end" } = {},
+  ) {
     const template = this.notesTemplate.content.cloneNode(
       true,
     ) as DocumentFragment;
@@ -156,8 +168,40 @@ export class NoteActions {
         listElement.addEventListener("animationend", onEnterEnd);
       }
 
-      this.notesList.prepend(template);
+      if (options.placement === "end") {
+        this.notesList.append(template);
+      } else {
+        this.notesList.prepend(template);
+      }
       this.#syncEmptyState();
+    }
+  }
+
+  #updateNoteElement(note: Note) {
+    const listElement = document.getElementById(note.id);
+    if (!listElement) return;
+
+    const notesTitle = listElement.querySelector(".notes-list-item__title");
+    if (notesTitle) {
+      const truncatedTitle = truncateText(note.title, NOTE_TITLE_MAX_LENGTH);
+      notesTitle.textContent = truncatedTitle;
+      notesTitle.setAttribute("title", note.title);
+    }
+
+    const notesContent = listElement.querySelector(".notes-list-item__content");
+    if (notesContent) {
+      const toggleBtn = listElement.querySelector(
+        ".notes-list-item__truncateToggle",
+      );
+      this.#setTruncatedState(note.content, notesContent, toggleBtn);
+    }
+
+    const notesDate = listElement.querySelector(".notes-list-item__date");
+    if (notesDate) {
+      const date = dateFormatter.format(
+        new Date(note.updatedAt ?? note.createdAt),
+      );
+      notesDate.textContent = date;
     }
   }
 

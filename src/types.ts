@@ -6,6 +6,8 @@ export type CreateNoteDto = {
 export type NoteContent = CreateNoteDto & {
   createdAt: string;
   updatedAt?: string | null;
+  /** Higher values appear closer to the top of the list. */
+  order?: number;
 };
 
 export type Note = {

@@ -7,9 +7,14 @@ import {
 import { exportCSV, exportJSON } from "./export.js";
 import { parseNotes, type ImportFormat } from "./import.js";
 import { Observable } from "./observable.js";
-import { importNotesST, syncPendingNote } from "./storage.js";
+import {
+  importNotesST,
+  reorderNotesST,
+  syncPendingNote,
+} from "./storage.js";
 import { Toaster } from "./toast.js";
 import { truncateText } from "./utils.js";
+import type Sortable from "sortablejs";
 
 // ELEMENTS
 
@@ -51,8 +56,8 @@ const importSubmitBtn =
   document.querySelector<HTMLButtonElement>("#import-submit");
 
 const IMPORT_PLACEHOLDERS: Record<ImportFormat, string> = {
-  json: '[{"id":"...","title":"...","content":"...","createdAt":"..."}]',
-  csv: "id,title,content,createdAt,updatedAt",
+  json: '[{"id":"...","title":"...","content":"...","createdAt":"...","order":0}]',
+  csv: "id,title,content,createdAt,updatedAt,order",
 };
 const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
   json: `[
@@ -61,11 +66,12 @@ const IMPORT_EXAMPLES: Record<ImportFormat, string> = {
     "title": "Title",
     "content": "Note body",
     "createdAt": "2026-09-10T12:00:00.000Z",
-    "updatedAt": "2026-09-16T12:00:00.000Z"
+    "updatedAt": "2026-09-16T12:00:00.000Z",
+    "order": 1
   }
 ]`,
-  csv: `id,title,content,createdAt,updatedAt
-"note-…","Title","Note body","2026-09-10T12:00:00.000Z",""`,
+  csv: `id,title,content,createdAt,updatedAt,order
+"note-…","Title","Note body","2026-09-10T12:00:00.000Z","",1`,
 };
 const DROPZONE_DEFAULT_LABEL =
   "Drop a .json or .csv file here, or click to browse";
@@ -73,14 +79,44 @@ const DROPZONE_DEFAULT_LABEL =
 // STATE
 
 let activeNoteId: string | null = null;
-const actions = new NoteActions(notesList, notesEmpty, notesTemplate);
+let notesSortable: Sortable | null = null;
 const indicatorTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
 const toaster = new Toaster(notesListWrapper);
 const isLoading = new Observable<boolean>(false);
 
+const initNotesSortable = () => {
+  if (!notesList || typeof window.Sortable === "undefined") return;
+
+  notesSortable?.destroy();
+  notesSortable = window.Sortable.create(notesList, {
+    animation: 150,
+    handle: ".drag-handle",
+    draggable: ".notes-list-item",
+    ghostClass: "notes-list-item--ghost",
+    chosenClass: "notes-list-item--chosen",
+    dragClass: "notes-list-item--drag",
+    disabled: isLoading.get(),
+    onEnd: () => {
+      const orderedIds = [...notesList.children]
+        .map((el) => el.id)
+        .filter((id) => id.length > 0);
+      void reorderNotesST(orderedIds);
+    },
+  });
+};
+
+const actions = new NoteActions(
+  notesList,
+  notesEmpty,
+  notesTemplate,
+  initNotesSortable,
+);
+
 // OBSERVERS
 
 isLoading.subscribe((value) => {
+  notesSortable?.option("disabled", value);
+
   if (value) {
     document.querySelector(".export-btn")?.setAttribute("disabled", "");
     importOpenBtn?.setAttribute("disabled", "");
@@ -291,6 +327,7 @@ const handleCopyNoteClick = (target: Element) => {
 
 const handleNotesListClick = async (e: MouseEvent) => {
   if (!(e.target instanceof Element)) return;
+  if (e.target.closest(".drag-handle")) return;
 
   if (handleTruncationToggle(e.target)) return;
   if (handleEditNoteClick(e.target)) return;

@@ -1,6 +1,7 @@
 import type { Note } from "./types.js";
 
-const CSV_HEADER = "id,title,content,createdAt,updatedAt";
+const CSV_HEADER = "id,title,content,createdAt,updatedAt,order";
+const CSV_HEADER_LEGACY = "id,title,content,createdAt,updatedAt";
 
 export type ImportFormat = "json" | "csv";
 
@@ -58,28 +59,30 @@ function parseCSVNotes(text: string): Note[] {
   }
 
   const header = rows[0]!.join(",");
-  if (header !== CSV_HEADER) {
-    throw new Error(
-      `CSV header must be ${CSV_HEADER}.`,
-    );
+  const hasOrder = header === CSV_HEADER;
+  if (!hasOrder && header !== CSV_HEADER_LEGACY) {
+    throw new Error(`CSV header must be ${CSV_HEADER}.`);
   }
 
   if (rows.length === 1) {
     return [];
   }
 
+  const expectedColumns = hasOrder ? 6 : 5;
+
   return rows.slice(1).map((row, index) => {
     const rowNumber = index + 2;
-    if (row.length !== 5) {
+    if (row.length !== expectedColumns) {
       throw new Error(`Row ${rowNumber} has the wrong number of columns.`);
     }
 
-    const [id, title, content, createdAt, updatedAtRaw] = row as [
+    const [id, title, content, createdAt, updatedAtRaw, orderRaw] = row as [
       string,
       string,
       string,
       string,
       string,
+      string?,
     ];
 
     return validateNote(
@@ -89,6 +92,9 @@ function parseCSVNotes(text: string): Note[] {
         content,
         createdAt,
         updatedAt: updatedAtRaw === "" ? undefined : updatedAtRaw,
+        ...(hasOrder && orderRaw !== ""
+          ? { order: Number(orderRaw) }
+          : {}),
       },
       rowNumber,
     );
@@ -117,6 +123,15 @@ function validateNote(value: unknown, rowNumber: number): Note {
       "updatedAt",
       rowNumber,
     );
+  }
+
+  if ("order" in record && record.order != null && record.order !== "") {
+    const order =
+      typeof record.order === "number" ? record.order : Number(record.order);
+    if (!Number.isFinite(order)) {
+      throw new Error(`Row ${rowNumber} has an invalid order.`);
+    }
+    note.order = order;
   }
 
   return note;

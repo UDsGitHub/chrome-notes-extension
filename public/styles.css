@@ -552,6 +552,7 @@ header {
   min-height: 48px;
   display: flex;
   align-items: center;
+  gap: 4px;
   transition: background-color 180ms;
   cursor: pointer;
 }
@@ -565,8 +566,32 @@ header {
   pointer-events: none;
 }
 
+.notes-list-item--ghost {
+  opacity: 0.4;
+  background-color: var(--hover-overlay);
+}
+
+.notes-list-item--chosen {
+  background-color: var(--hover-overlay);
+}
+
+.notes-list-item--drag {
+  opacity: 1;
+  cursor: grabbing;
+}
+
 .notes-list-item:hover {
   background-color: var(--hover-overlay);
+}
+
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .notes-list-item.editing {

@@ -3,6 +3,7 @@ import {
   getNotesST,
   addNoteST,
   deleteNoteST,
+  reorderNotesST,
   syncPendingNote,
   updateNoteST,
 } from "../storage.js";
@@ -67,7 +68,11 @@ describe("storage", () => {
 
       expect(createdNote).toBeDefined();
       expect(await getNotesST()).toEqual({
-        [createdNote!.id]: { ...note, createdAt: expect.any(String) },
+        [createdNote!.id]: {
+          ...note,
+          createdAt: expect.any(String),
+          order: 0,
+        },
       });
     });
 
@@ -80,7 +85,11 @@ describe("storage", () => {
       const createdNote = await addNoteST(note);
       expect(createdNote).toBeDefined();
       expect(await getNotesST()).toEqual({
-        [createdNote!.id]: { ...note, createdAt: expect.any(String) },
+        [createdNote!.id]: {
+          ...note,
+          createdAt: expect.any(String),
+          order: 0,
+        },
       });
 
       // @ts-expect-error: null check above
@@ -126,6 +135,21 @@ describe("storage", () => {
         addNoteST({ title: "Title", content: value }),
       );
       expect(await getNotesST()).toBeNull();
+    });
+  });
+
+  describe("reorderNotesST", () => {
+    it("assigns higher order to notes nearer the top", async () => {
+      const first = await addNoteST({ title: "A", content: "a" });
+      const second = await addNoteST({ title: "B", content: "b" });
+      expect(first).toBeDefined();
+      expect(second).toBeDefined();
+
+      await reorderNotesST([first!.id, second!.id]);
+
+      const notes = await getNotesST();
+      expect(notes?.[first!.id]?.order).toBe(1);
+      expect(notes?.[second!.id]?.order).toBe(0);
     });
   });
 
