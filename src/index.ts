@@ -59,6 +59,13 @@ const cancelEditBtn = document.querySelector<HTMLElement>(".cancel-edit-btn");
 const exportPopover = document.querySelector<HTMLElement>("#export-popover");
 const loadingDialog = document.querySelector<HTMLDialogElement>("#loader");
 const importOpenBtn = document.querySelector<HTMLButtonElement>("#import-open");
+const deleteAllOpenBtn =
+  document.querySelector<HTMLButtonElement>("#delete-all-open");
+const deleteAllDialog =
+  document.querySelector<HTMLDialogElement>("#delete-all-dialog");
+const deleteAllForm = document.querySelector<HTMLFormElement>("#delete-all-form");
+const deleteAllCancelBtn =
+  document.querySelector<HTMLButtonElement>("#delete-all-cancel");
 const importDialog = document.querySelector<HTMLDialogElement>("#import-dialog");
 const importForm = document.querySelector<HTMLFormElement>("#import-form");
 const importDropzone = document.querySelector<HTMLElement>("#import-dropzone");
@@ -127,6 +134,11 @@ const createNotesSortable = (list: HTMLElement, pinned: boolean) => {
   });
 };
 
+const syncDeleteAllButton = () => {
+  if (!deleteAllOpenBtn) return;
+  deleteAllOpenBtn.disabled = !actions.hasNotes() || isLoading.get();
+};
+
 const initNotesSortable = () => {
   if (typeof window.Sortable === "undefined") return;
 
@@ -145,6 +157,11 @@ const initNotesSortable = () => {
   }
 };
 
+const onListRebuilt = () => {
+  initNotesSortable();
+  syncDeleteAllButton();
+};
+
 const actions = new NoteActions(
   pinnedNotesList,
   notesList,
@@ -156,7 +173,7 @@ const actions = new NoteActions(
   notesTagFilters,
   notesTagFiltersList,
   notesTemplate,
-  initNotesSortable,
+  onListRebuilt,
 );
 
 // OBSERVERS
@@ -168,6 +185,7 @@ isLoading.subscribe((value) => {
   if (value) {
     document.querySelector(".export-btn")?.setAttribute("disabled", "");
     importOpenBtn?.setAttribute("disabled", "");
+    deleteAllOpenBtn?.setAttribute("disabled", "");
     document
       .querySelectorAll<HTMLElement>(".notes-list-item")
       .forEach((item) => {
@@ -188,6 +206,7 @@ isLoading.subscribe((value) => {
   } else {
     document.querySelector(".export-btn")?.removeAttribute("disabled");
     importOpenBtn?.removeAttribute("disabled");
+    syncDeleteAllButton();
     document
       .querySelectorAll<HTMLElement>(".notes-list-item")
       .forEach((item) => {
@@ -673,6 +692,31 @@ exportPopover?.addEventListener("click", handleExportPopoverClick);
 importOpenBtn?.addEventListener("click", () => {
   resetImportForm();
   importDialog?.showModal();
+});
+
+deleteAllOpenBtn?.addEventListener("click", () => {
+  if (!actions.hasNotes()) return;
+  deleteAllDialog?.showModal();
+});
+
+deleteAllCancelBtn?.addEventListener("click", () => {
+  deleteAllDialog?.close();
+});
+
+deleteAllForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  deleteAllDialog?.close();
+
+  await processAsync(
+    async () => {
+      await actions.deleteAllNotes();
+      if (notesSearchInput) notesSearchInput.value = "";
+      cleanUp();
+    },
+    () => {
+      toaster.toast("All notes deleted.");
+    },
+  );
 });
 
 importCancelBtn?.addEventListener("click", () => {

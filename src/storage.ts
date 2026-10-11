@@ -130,6 +130,12 @@ export const deleteNoteST = async (noteId: string) => {
   });
 };
 
+export const clearNotesST = async () => {
+  await chrome.storage.local.set({
+    [NOTES_STORAGE_KEY]: {},
+  });
+};
+
 /** `orderedIds` is top-to-bottom display order within one pin section. */
 export const reorderNotesST = async (
   orderedIds: string[],

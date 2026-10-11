@@ -12,3 +12,4 @@
 - [x] add drag to reorder
 - [x] add a pinning feature
 - [x] add tags and search filter
+- [x] delete all notes
