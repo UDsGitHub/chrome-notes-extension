@@ -175,6 +175,7 @@ main {
   position: relative;
   min-height: 0;
   overflow-y: auto;
+  padding-top: 4px;
 }
 
 h2 {
@@ -199,17 +200,94 @@ header {
 }
 
 .import-btn,
-.export-btn {
+.export-btn,
+.delete-all-btn {
   background-color: transparent;
   outline: none;
   border: none;
   cursor: pointer;
+  color: var(--text-color);
+}
+
+.import-btn:hover,
+.export-btn:hover,
+.delete-all-btn:hover:not(:disabled) {
+  color: var(--text-hover-color);
 }
 
 .import-btn:disabled,
-.export-btn:disabled {
+.export-btn:disabled,
+.delete-all-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.confirm-dialog {
+  width: min(320px, calc(100% - 24px));
+  max-width: calc(100% - 24px);
+  margin: auto;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--surface-color);
+  color: var(--text-color);
+}
+
+.confirm-dialog::backdrop {
+  background-color: var(--dialog-backdrop);
+}
+
+.confirm-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirm-dialog__title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-hover-color);
+}
+
+.confirm-dialog__body {
+  margin: 0;
+  color: var(--text-secondary-color);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-dialog__cancel,
+.confirm-dialog__danger {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.confirm-dialog__cancel {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.confirm-dialog__cancel:hover {
+  background-color: var(--hover-overlay);
+}
+
+.confirm-dialog__danger {
+  background-color: oklch(55% 0.2 25);
+  color: white;
+}
+
+.confirm-dialog__danger:hover {
+  background-color: oklch(48% 0.2 25);
 }
 
 .import-dialog {
