@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getNotesST,
   addNoteST,
+  clearNotesST,
   deleteNoteST,
   reorderNotesST,
   setNotePinnedST,
@@ -224,6 +225,17 @@ describe("storage", () => {
       expect(notes?.[first!.id]?.order).toBeGreaterThan(
         notes?.[second!.id]?.order ?? -1,
       );
+    });
+  });
+
+  describe("clearNotesST", () => {
+    it("removes every note from storage", async () => {
+      await addNoteST({ title: "A", content: "a" });
+      await addNoteST({ title: "B", content: "b" });
+
+      await clearNotesST();
+
+      expect(await getNotesST()).toEqual({});
     });
   });
 

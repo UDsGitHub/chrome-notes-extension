@@ -5,6 +5,7 @@ import {
 import {
   getNotesST,
   addNoteST,
+  clearNotesST,
   deleteNoteST,
   setNotePinnedST,
   syncPendingNote,
@@ -76,6 +77,10 @@ export class NoteActions {
     return this.filterQuery.length > 0 || this.filterTag != null;
   }
 
+  hasNotes() {
+    return this.#hasAnyNotes;
+  }
+
   async loadNotes(options: { animate?: boolean } = {}) {
     try {
       const notes = await getNotesST();
@@ -134,6 +139,7 @@ export class NoteActions {
         } else {
           this.#updateNoteElement(updatedNote);
         }
+        this.onListRebuilt?.();
       }
 
       return updatedNote;
@@ -154,6 +160,7 @@ export class NoteActions {
         } else {
           this.#syncEmptyState();
         }
+        this.onListRebuilt?.();
       }
 
       return createdNote;
@@ -193,6 +200,7 @@ export class NoteActions {
         this.#hasAnyNotes = Boolean(notes && Object.keys(notes).length > 0);
         await this.#refreshTagFilters();
         this.#syncEmptyState();
+        this.onListRebuilt?.();
         return;
       }
 
@@ -202,8 +210,26 @@ export class NoteActions {
       this.#hasAnyNotes = Boolean(notes && Object.keys(notes).length > 0);
       await this.#refreshTagFilters();
       this.#syncEmptyState();
+      this.onListRebuilt?.();
     } catch (error) {
       console.error("Failed to delete note: ", error);
+    }
+  }
+
+  async deleteAllNotes() {
+    try {
+      await clearNotesST();
+      this.filterQuery = "";
+      this.filterTag = null;
+      this.#hasAnyNotes = false;
+      this.pinnedList.innerHTML = "";
+      this.unpinnedList.innerHTML = "";
+      this.#syncTagFilterBar([]);
+      this.#syncEmptyState();
+      this.onListRebuilt?.();
+    } catch (error) {
+      console.error("Failed to delete all notes: ", error);
+      throw error;
     }
   }
 
