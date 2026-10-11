@@ -501,6 +501,22 @@ header {
   text-align: center;
 }
 
+.notes-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes-section__label {
+  margin: 0;
+  padding: 8px 24px 0 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-color) 65%, transparent);
+}
+
 .notes-list {
   list-style: none;
   margin: 0;
@@ -514,6 +530,23 @@ header {
   gap: 20px;
 }
 
+#pinned-notes-list {
+  padding-bottom: 8px;
+}
+
+.notes-section-divider {
+  padding: 8px 24px 8px 12px;
+}
+
+.notes-section-divider__rule {
+  width: 90%;
+  margin-inline: auto;
+  border-top: 1px solid var(--accent-color);
+}
+
+.notes-sections[hidden],
+.notes-section[hidden],
+.notes-section-divider[hidden],
 .notes-list[hidden],
 .notes-empty[hidden],
 .cancel-edit-btn[hidden] {
@@ -637,6 +670,14 @@ header {
 }
 
 .notes-list-item__action:hover {
+  color: var(--text-hover-color);
+}
+
+.pin-btn.is-pinned {
+  color: var(--accent-color);
+}
+
+.pin-btn.is-pinned:hover {
   color: var(--text-hover-color);
 }
 

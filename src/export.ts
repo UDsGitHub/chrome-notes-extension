@@ -12,6 +12,7 @@ export async function exportJSON() {
       exportNotes = sortedNotes.map(([id, noteDetails]) => ({
         id,
         ...noteDetails,
+        pinned: Boolean(noteDetails.pinned),
       }));
     }
 
@@ -32,14 +33,14 @@ export async function exportCSV() {
   try {
     const notes = await getNotesST();
 
-    const csv = ["id,title,content,createdAt,updatedAt,order"];
+    const csv = ["id,title,content,createdAt,updatedAt,order,pinned"];
     if (notes) {
       const sortedNotes = getSortedNotes(notes);
 
       for (const noteEntry of sortedNotes) {
         const [id, note] = noteEntry;
         csv.push(
-          `"${id}",${escapeText(note.title)},${escapeText(note.content)},${escapeText(note.createdAt)},${escapeText(note.updatedAt ?? "")},${note.order ?? ""}`,
+          `"${id}",${escapeText(note.title)},${escapeText(note.content)},${escapeText(note.createdAt)},${escapeText(note.updatedAt ?? "")},${note.order ?? ""},${Boolean(note.pinned)}`,
         );
       }
     }

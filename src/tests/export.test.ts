@@ -85,6 +85,28 @@ describe("Export CSV or JSON", () => {
     expect(sortedNotes[2]?.[0]).toEqual("1");
   });
 
+  it("sorts pinned notes above unpinned notes", () => {
+    const sortedNotes = getSortedNotes({
+      "1": {
+        title: "unpinned-high",
+        content: "content",
+        createdAt: new Date("09/10/2026").toISOString(),
+        order: 10,
+        pinned: false,
+      },
+      "2": {
+        title: "pinned-low",
+        content: "content",
+        createdAt: new Date("09/15/2026").toISOString(),
+        order: 0,
+        pinned: true,
+      },
+    });
+
+    expect(sortedNotes[0]?.[0]).toEqual("2");
+    expect(sortedNotes[1]?.[0]).toEqual("1");
+  });
+
   it("downloads JSON for notes from storage", async () => {
     const createdAt = new Date("09/10/2026").toISOString();
     getNotesST.mockResolvedValue({
@@ -111,7 +133,13 @@ describe("Export CSV or JSON", () => {
 
     const json = await lastBlob!.text();
     expect(JSON.parse(json)).toEqual([
-      { id: "1", title: "title-1", content: "content", createdAt },
+      {
+        id: "1",
+        title: "title-1",
+        content: "content",
+        createdAt,
+        pinned: false,
+      },
     ]);
   });
 
@@ -181,8 +209,8 @@ describe("Export CSV or JSON", () => {
     const csv = await lastBlob!.text();
     expect(csv).toBe(
       [
-        "id,title,content,createdAt,updatedAt,order",
-        `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",0`,
+        "id,title,content,createdAt,updatedAt,order,pinned",
+        `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",0,false`,
       ].join("\n"),
     );
   });

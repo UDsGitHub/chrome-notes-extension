@@ -6,6 +6,7 @@ import {
   getNotesST,
   addNoteST,
   deleteNoteST,
+  setNotePinnedST,
   syncPendingNote,
   updateNoteST,
 } from "./storage.js";
@@ -13,18 +14,30 @@ import type { Note } from "./types.js";
 import { dateFormatter, getSortedNotes, truncateText } from "./utils.js";
 
 export class NoteActions {
-  notesList: HTMLElement;
+  pinnedList: HTMLElement;
+  unpinnedList: HTMLElement;
+  pinnedSection: HTMLElement;
+  sectionDivider: HTMLElement;
+  notesSections: HTMLElement;
   notesEmpty: HTMLElement;
   notesTemplate: HTMLTemplateElement;
   onListRebuilt: (() => void) | undefined;
 
   constructor(
-    notesList: HTMLElement,
+    pinnedList: HTMLElement,
+    unpinnedList: HTMLElement,
+    pinnedSection: HTMLElement,
+    sectionDivider: HTMLElement,
+    notesSections: HTMLElement,
     notesEmpty: HTMLElement,
     notesTemplate: HTMLTemplateElement,
     onListRebuilt?: () => void,
   ) {
-    this.notesList = notesList;
+    this.pinnedList = pinnedList;
+    this.unpinnedList = unpinnedList;
+    this.pinnedSection = pinnedSection;
+    this.sectionDivider = sectionDivider;
+    this.notesSections = notesSections;
     this.notesEmpty = notesEmpty;
     this.notesTemplate = notesTemplate;
     this.onListRebuilt = onListRebuilt;
@@ -34,10 +47,12 @@ export class NoteActions {
     try {
       const notes = await getNotesST();
 
+      this.pinnedList.innerHTML = "";
+      this.unpinnedList.innerHTML = "";
+
       if (notes) {
         const sortedNotes = getSortedNotes(notes);
 
-        this.notesList.innerHTML = "";
         sortedNotes.forEach((entry) => {
           const note = {
             id: entry[0],
@@ -87,6 +102,27 @@ export class NoteActions {
     }
   }
 
+  async setPinned(noteId: string, pinned: boolean) {
+    try {
+      const updatedNote = await setNotePinnedST(noteId, pinned);
+      if (!updatedNote) return;
+
+      const listElement = document.getElementById(noteId);
+      if (!listElement) {
+        await this.loadNotes();
+        return;
+      }
+
+      this.#syncPinButton(listElement, pinned);
+      const targetList = this.#listFor(pinned);
+      targetList.prepend(listElement);
+      this.#syncEmptyState();
+      this.onListRebuilt?.();
+    } catch (error) {
+      console.error("Failed to update pin state: ", error);
+    }
+  }
+
   async deleteNote(noteId: string) {
     try {
       const listElement = document.getElementById(noteId);
@@ -115,10 +151,29 @@ export class NoteActions {
 
   // HELPERS
 
+  #listFor(pinned: boolean) {
+    return pinned ? this.pinnedList : this.unpinnedList;
+  }
+
   #syncEmptyState() {
-    const hasNotes = this.notesList.children.length > 0;
+    const hasPinned = this.pinnedList.children.length > 0;
+    const hasUnpinned = this.unpinnedList.children.length > 0;
+    const hasNotes = hasPinned || hasUnpinned;
+
     this.notesEmpty.hidden = hasNotes;
-    this.notesList.hidden = !hasNotes;
+    this.notesSections.hidden = !hasNotes;
+    this.pinnedSection.hidden = !hasPinned;
+    this.sectionDivider.hidden = !hasPinned;
+  }
+
+  #syncPinButton(listElement: HTMLElement, pinned: boolean) {
+    const pinBtn = listElement.querySelector(".pin-btn");
+    if (!(pinBtn instanceof HTMLElement)) return;
+
+    pinBtn.setAttribute("aria-pressed", pinned ? "true" : "false");
+    pinBtn.setAttribute("title", pinned ? "Unpin note" : "Pin note");
+    pinBtn.setAttribute("aria-label", pinned ? "Unpin note" : "Pin note");
+    pinBtn.classList.toggle("is-pinned", pinned);
   }
 
   #createNoteElement(
@@ -158,6 +213,8 @@ export class NoteActions {
         notesDate.textContent = date;
       }
 
+      this.#syncPinButton(listElement, Boolean(note.pinned));
+
       if (options.animate) {
         listElement.classList.add("is-entering");
         const onEnterEnd = (e: AnimationEvent) => {
@@ -168,10 +225,11 @@ export class NoteActions {
         listElement.addEventListener("animationend", onEnterEnd);
       }
 
+      const targetList = this.#listFor(Boolean(note.pinned));
       if (options.placement === "end") {
-        this.notesList.append(template);
+        targetList.append(template);
       } else {
-        this.notesList.prepend(template);
+        targetList.prepend(template);
       }
       this.#syncEmptyState();
     }
@@ -203,6 +261,8 @@ export class NoteActions {
       );
       notesDate.textContent = date;
     }
+
+    this.#syncPinButton(listElement, Boolean(note.pinned));
   }
 
   #animateNoteExit(listElement: HTMLElement) {
