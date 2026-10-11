@@ -15,14 +15,39 @@ export const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
+function noteTimestamp(note: NotesList[string]) {
+  return new Date(note.updatedAt ?? note.createdAt).getTime();
+}
+
 /**
-  * Notes are returned in ascending order because of node appending  
-  * Reverse array if descending order is needed
-*/
+ * Returns notes in display order: top of the list first.
+ * Prefers manual `order` (higher = nearer top). Falls back to recency.
+ */
 export function getSortedNotes(notes: NotesList) {
   return Object.entries(notes).toSorted((a, b) => {
-    const dateA = new Date(a[1].updatedAt ?? a[1].createdAt);
-    const dateB = new Date(b[1].updatedAt ?? b[1].createdAt);
-    return dateA.getTime() - dateB.getTime();
+    const orderA = a[1].order;
+    const orderB = b[1].order;
+    const hasOrderA = typeof orderA === "number";
+    const hasOrderB = typeof orderB === "number";
+
+    if (hasOrderA && hasOrderB && orderA !== orderB) {
+      return orderB! - orderA!;
+    }
+    if (hasOrderA !== hasOrderB) {
+      return hasOrderA ? -1 : 1;
+    }
+
+    // Newest first when no manual order is present yet.
+    return noteTimestamp(b[1]) - noteTimestamp(a[1]);
   });
+}
+
+export function getMaxNoteOrder(notes: NotesList) {
+  let max = -1;
+  for (const note of Object.values(notes)) {
+    if (typeof note.order === "number" && note.order > max) {
+      max = note.order;
+    }
+  }
+  return max;
 }

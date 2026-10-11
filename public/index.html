@@ -211,6 +211,33 @@
     <!-- NOTE ITEM TEMPLATE -->
     <template id="notes-list-item__template">
       <li class="notes-list-item">
+        <button
+          type="button"
+          class="notes-list-item__action drag-handle"
+          title="Drag to reorder"
+          aria-label="Drag to reorder"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="9" cy="5" r="1" />
+            <circle cx="9" cy="19" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <circle cx="15" cy="5" r="1" />
+            <circle cx="15" cy="19" r="1" />
+          </svg>
+        </button>
         <div class="notes-list-item__contentWrapper">
           <p class="notes-list-item__title"></p>
           <span class="notes-list-item__content"></span>
@@ -282,5 +309,6 @@
       </div>
     </template>
   </body>
+  <script src="./vendor/Sortable.min.js"></script>
   <script type="module" src="../dist/index.js"></script>
 </html>

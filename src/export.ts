@@ -9,9 +9,10 @@ export async function exportJSON() {
     let exportNotes: Note[] = [];
     if (notes) {
       const sortedNotes = getSortedNotes(notes);
-      exportNotes = sortedNotes
-        .toReversed()
-        .map(([id, noteDetails]) => ({ id, ...noteDetails }));
+      exportNotes = sortedNotes.map(([id, noteDetails]) => ({
+        id,
+        ...noteDetails,
+      }));
     }
 
     await downloadText(
@@ -31,14 +32,14 @@ export async function exportCSV() {
   try {
     const notes = await getNotesST();
 
-    const csv = ["id,title,content,createdAt,updatedAt"];
+    const csv = ["id,title,content,createdAt,updatedAt,order"];
     if (notes) {
-      const sortedNotes = getSortedNotes(notes).toReversed();
+      const sortedNotes = getSortedNotes(notes);
 
       for (const noteEntry of sortedNotes) {
         const [id, note] = noteEntry;
         csv.push(
-          `"${id}",${escapeText(note.title)},${escapeText(note.content)},${escapeText(note.createdAt)},${escapeText(note.updatedAt ?? "")}`,
+          `"${id}",${escapeText(note.title)},${escapeText(note.content)},${escapeText(note.createdAt)},${escapeText(note.updatedAt ?? "")},${note.order ?? ""}`,
         );
       }
     }
