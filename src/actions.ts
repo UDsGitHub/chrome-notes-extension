@@ -25,12 +25,12 @@ export class NoteActions {
     this.notesTemplate = notesTemplate;
   }
 
-  async loadNotes() {
+  async loadNotes(options: { animate?: boolean } = {}) {
     try {
       const notes = await getNotesST();
 
       if (notes) {
-        const sortedNotes = getSortedNotes(notes)
+        const sortedNotes = getSortedNotes(notes);
 
         const notesListEl = document.querySelector(".notes-list");
         if (notesListEl) {
@@ -41,7 +41,7 @@ export class NoteActions {
               ...entry[1],
             };
 
-            this.#createNoteElement(note);
+            this.#createNoteElement(note, { animate: options.animate ?? false });
           });
         }
       }
@@ -61,7 +61,7 @@ export class NoteActions {
         content,
       });
       if (updatedNote) {
-        this.#updateNoteElement(updatedNote);
+        await this.loadNotes({ animate: true });
       }
 
       return updatedNote;
@@ -71,7 +71,7 @@ export class NoteActions {
         content,
       });
       if (createdNote) {
-        this.#createNoteElement(createdNote);
+        this.#createNoteElement(createdNote, { animate: true });
       }
 
       return createdNote;
@@ -80,9 +80,18 @@ export class NoteActions {
 
   async deleteNote(noteId: string) {
     try {
+      const listElement = document.getElementById(noteId);
+      if (listElement?.classList.contains("is-exiting")) return;
+
       await deleteNoteST(noteId);
 
-      document.getElementById(noteId)?.remove();
+      if (!listElement) {
+        this.#syncEmptyState();
+        return;
+      }
+
+      await this.#animateNoteExit(listElement);
+      listElement.remove();
       this.#syncEmptyState();
     } catch (error) {
       console.error("Failed to delete note: ", error);
@@ -103,11 +112,11 @@ export class NoteActions {
     this.notesList.hidden = !hasNotes;
   }
 
-  #createNoteElement(note: Note) {
+  #createNoteElement(note: Note, options: { animate?: boolean } = {}) {
     const template = this.notesTemplate.content.cloneNode(
       true,
     ) as DocumentFragment;
-    const listElement = template.querySelector(".notes-list-item");
+    const listElement = template.querySelector<HTMLElement>(".notes-list-item");
 
     if (listElement) {
       listElement.id = note.id;
@@ -137,39 +146,39 @@ export class NoteActions {
         notesDate.textContent = date;
       }
 
+      if (options.animate) {
+        listElement.classList.add("is-entering");
+        const onEnterEnd = (e: AnimationEvent) => {
+          if (e.target !== listElement) return;
+          listElement.removeEventListener("animationend", onEnterEnd);
+          listElement.classList.remove("is-entering");
+        };
+        listElement.addEventListener("animationend", onEnterEnd);
+      }
+
       this.notesList.prepend(template);
       this.#syncEmptyState();
     }
   }
 
-  #updateNoteElement(note: Note) {
-    const listElement = document.getElementById(note.id);
-    if (!listElement) return;
+  #animateNoteExit(listElement: HTMLElement) {
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(fallbackTimer);
+        listElement.removeEventListener("animationend", onExitEnd);
+        resolve();
+      };
+      const onExitEnd = (e: AnimationEvent) => {
+        if (e.target === listElement) finish();
+      };
 
-    const notesTitle = listElement.querySelector(".notes-list-item__title");
-    if (notesTitle) {
-      const truncatedTitle = truncateText(note.title, NOTE_TITLE_MAX_LENGTH);
-      notesTitle.textContent = truncatedTitle;
-      notesTitle.setAttribute("title", note.title);
-    }
-
-    const notesContent = listElement.querySelector(".notes-list-item__content");
-    if (notesContent) {
-      const toggleBtn = listElement.querySelector(
-        ".notes-list-item__truncateToggle",
-      );
-      this.#setTruncatedState(note.content, notesContent, toggleBtn);
-    }
-
-    const notesDate = listElement.querySelector(".notes-list-item__date");
-    if (notesDate) {
-      const date = dateFormatter.format(
-        new Date(note.updatedAt ?? note.createdAt),
-      );
-      notesDate.textContent = date;
-    }
-
-    this.loadNotes();
+      listElement.classList.add("is-exiting");
+      listElement.addEventListener("animationend", onExitEnd);
+      const fallbackTimer = window.setTimeout(finish, 250);
+    });
   }
 
   #setTruncatedState(
