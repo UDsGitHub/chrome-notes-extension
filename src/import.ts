@@ -1,6 +1,8 @@
 import type { Note } from "./types.js";
+import { normalizeTags } from "./utils.js";
 
-const CSV_HEADER = "id,title,content,createdAt,updatedAt,order,pinned";
+const CSV_HEADER = "id,title,content,createdAt,updatedAt,order,pinned,tags";
+const CSV_HEADER_WITH_PINNED = "id,title,content,createdAt,updatedAt,order,pinned";
 const CSV_HEADER_WITH_ORDER = "id,title,content,createdAt,updatedAt,order";
 const CSV_HEADER_LEGACY = "id,title,content,createdAt,updatedAt";
 
@@ -60,7 +62,8 @@ function parseCSVNotes(text: string): Note[] {
   }
 
   const header = rows[0]!.join(",");
-  const hasPinned = header === CSV_HEADER;
+  const hasTags = header === CSV_HEADER;
+  const hasPinned = hasTags || header === CSV_HEADER_WITH_PINNED;
   const hasOrder = hasPinned || header === CSV_HEADER_WITH_ORDER;
   if (!hasOrder && header !== CSV_HEADER_LEGACY) {
     throw new Error(`CSV header must be ${CSV_HEADER}.`);
@@ -70,7 +73,7 @@ function parseCSVNotes(text: string): Note[] {
     return [];
   }
 
-  const expectedColumns = hasPinned ? 7 : hasOrder ? 6 : 5;
+  const expectedColumns = hasTags ? 8 : hasPinned ? 7 : hasOrder ? 6 : 5;
 
   return rows.slice(1).map((row, index) => {
     const rowNumber = index + 2;
@@ -78,16 +81,25 @@ function parseCSVNotes(text: string): Note[] {
       throw new Error(`Row ${rowNumber} has the wrong number of columns.`);
     }
 
-    const [id, title, content, createdAt, updatedAtRaw, orderRaw, pinnedRaw] =
-      row as [
-        string,
-        string,
-        string,
-        string,
-        string,
-        string?,
-        string?,
-      ];
+    const [
+      id,
+      title,
+      content,
+      createdAt,
+      updatedAtRaw,
+      orderRaw,
+      pinnedRaw,
+      tagsRaw,
+    ] = row as [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string?,
+      string?,
+      string?,
+    ];
 
     return validateNote(
       {
@@ -100,6 +112,7 @@ function parseCSVNotes(text: string): Note[] {
           ? { order: Number(orderRaw) }
           : {}),
         ...(hasPinned ? { pinned: pinnedRaw } : {}),
+        ...(hasTags ? { tags: tagsRaw ?? "" } : {}),
       },
       rowNumber,
     );
@@ -123,6 +136,7 @@ function validateNote(value: unknown, rowNumber: number): Note {
     content,
     createdAt,
     pinned: false,
+    tags: [],
   };
 
   if ("updatedAt" in record && record.updatedAt != null && record.updatedAt !== "") {
@@ -147,6 +161,20 @@ function validateNote(value: unknown, rowNumber: number): Note {
 
   if ("pinned" in record && record.pinned != null && record.pinned !== "") {
     note.pinned = parsePinned(record.pinned, rowNumber);
+  }
+
+  if ("tags" in record && record.tags != null && record.tags !== "") {
+    if (Array.isArray(record.tags)) {
+      const invalid = record.tags.some((tag) => typeof tag !== "string");
+      if (invalid) {
+        throw new Error(`Row ${rowNumber} has an invalid tags value.`);
+      }
+      note.tags = normalizeTags(record.tags);
+    } else if (typeof record.tags === "string") {
+      note.tags = normalizeTags(record.tags);
+    } else {
+      throw new Error(`Row ${rowNumber} has an invalid tags value.`);
+    }
   }
 
   return note;

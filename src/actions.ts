@@ -11,7 +11,14 @@ import {
   updateNoteST,
 } from "./storage.js";
 import type { Note } from "./types.js";
-import { dateFormatter, getSortedNotes, truncateText } from "./utils.js";
+import {
+  collectUniqueTags,
+  dateFormatter,
+  formatTagsInput,
+  getSortedNotes,
+  noteMatchesFilters,
+  truncateText,
+} from "./utils.js";
 
 export class NoteActions {
   pinnedList: HTMLElement;
@@ -20,8 +27,14 @@ export class NoteActions {
   sectionDivider: HTMLElement;
   notesSections: HTMLElement;
   notesEmpty: HTMLElement;
+  notesFilterEmpty: HTMLElement;
+  tagFilters: HTMLElement;
+  tagFiltersList: HTMLElement;
   notesTemplate: HTMLTemplateElement;
   onListRebuilt: (() => void) | undefined;
+  filterQuery = "";
+  filterTag: string | null = null;
+  #hasAnyNotes = false;
 
   constructor(
     pinnedList: HTMLElement,
@@ -30,6 +43,9 @@ export class NoteActions {
     sectionDivider: HTMLElement,
     notesSections: HTMLElement,
     notesEmpty: HTMLElement,
+    notesFilterEmpty: HTMLElement,
+    tagFilters: HTMLElement,
+    tagFiltersList: HTMLElement,
     notesTemplate: HTMLTemplateElement,
     onListRebuilt?: () => void,
   ) {
@@ -39,8 +55,25 @@ export class NoteActions {
     this.sectionDivider = sectionDivider;
     this.notesSections = notesSections;
     this.notesEmpty = notesEmpty;
+    this.notesFilterEmpty = notesFilterEmpty;
+    this.tagFilters = tagFilters;
+    this.tagFiltersList = tagFiltersList;
     this.notesTemplate = notesTemplate;
     this.onListRebuilt = onListRebuilt;
+  }
+
+  async setFilter(query: string) {
+    this.filterQuery = query.trim();
+    await this.loadNotes();
+  }
+
+  async setTagFilter(tag: string | null) {
+    this.filterTag = tag?.trim() ? tag.trim() : null;
+    await this.loadNotes();
+  }
+
+  isFiltering() {
+    return this.filterQuery.length > 0 || this.filterTag != null;
   }
 
   async loadNotes(options: { animate?: boolean } = {}) {
@@ -49,6 +82,10 @@ export class NoteActions {
 
       this.pinnedList.innerHTML = "";
       this.unpinnedList.innerHTML = "";
+      this.#hasAnyNotes = Boolean(notes && Object.keys(notes).length > 0);
+
+      const allTags = collectUniqueTags(notes ?? {});
+      this.#syncTagFilterBar(allTags);
 
       if (notes) {
         const sortedNotes = getSortedNotes(notes);
@@ -58,6 +95,8 @@ export class NoteActions {
             id: entry[0],
             ...entry[1],
           };
+
+          if (!this.#matchesFilters(note)) return;
 
           this.#createNoteElement(note, {
             animate: options.animate ?? false,
@@ -75,14 +114,26 @@ export class NoteActions {
     }
   }
 
-  async addNote(title: string, content: string, activeNoteId: string | null) {
+  async addNote(
+    title: string,
+    content: string,
+    activeNoteId: string | null,
+    tags: string[] = [],
+  ) {
     if (activeNoteId) {
       const updatedNote = await updateNoteST(activeNoteId, {
         title,
         content,
+        tags,
       });
       if (updatedNote) {
-        this.#updateNoteElement(updatedNote);
+        await this.#refreshTagFilters();
+        if (!this.#matchesFilters(updatedNote)) {
+          document.getElementById(updatedNote.id)?.remove();
+          this.#syncEmptyState();
+        } else {
+          this.#updateNoteElement(updatedNote);
+        }
       }
 
       return updatedNote;
@@ -90,12 +141,19 @@ export class NoteActions {
       const createdNote = await addNoteST({
         title,
         content,
+        tags,
       });
       if (createdNote) {
-        this.#createNoteElement(createdNote, {
-          animate: true,
-          placement: "start",
-        });
+        this.#hasAnyNotes = true;
+        await this.#refreshTagFilters();
+        if (this.#matchesFilters(createdNote)) {
+          this.#createNoteElement(createdNote, {
+            animate: true,
+            placement: "start",
+          });
+        } else {
+          this.#syncEmptyState();
+        }
       }
 
       return createdNote;
@@ -131,12 +189,18 @@ export class NoteActions {
       await deleteNoteST(noteId);
 
       if (!listElement) {
+        const notes = await getNotesST();
+        this.#hasAnyNotes = Boolean(notes && Object.keys(notes).length > 0);
+        await this.#refreshTagFilters();
         this.#syncEmptyState();
         return;
       }
 
       await this.#animateNoteExit(listElement);
       listElement.remove();
+      const notes = await getNotesST();
+      this.#hasAnyNotes = Boolean(notes && Object.keys(notes).length > 0);
+      await this.#refreshTagFilters();
       this.#syncEmptyState();
     } catch (error) {
       console.error("Failed to delete note: ", error);
@@ -151,6 +215,69 @@ export class NoteActions {
 
   // HELPERS
 
+  #matchesFilters(note: {
+    title: string;
+    content: string;
+    tags?: string[];
+  }) {
+    return noteMatchesFilters(note, {
+      query: this.filterQuery,
+      tag: this.filterTag,
+    });
+  }
+
+  async #refreshTagFilters() {
+    const notes = (await getNotesST()) ?? {};
+    const previousTag = this.filterTag;
+    this.#syncTagFilterBar(collectUniqueTags(notes));
+    // Active tag disappeared (e.g. last note with it deleted) → show All.
+    if (previousTag && this.filterTag == null) {
+      await this.loadNotes();
+    }
+  }
+
+  #syncTagFilterBar(allTags: string[]) {
+    if (
+      this.filterTag &&
+      !allTags.some(
+        (tag) => tag.toLowerCase() === this.filterTag!.toLowerCase(),
+      )
+    ) {
+      this.filterTag = null;
+    }
+
+    this.tagFilters.hidden = allTags.length === 0;
+    this.tagFiltersList.innerHTML = "";
+
+    if (allTags.length === 0) return;
+
+    this.tagFiltersList.append(this.#createTagFilterChip(null, "All"));
+    for (const tag of allTags) {
+      this.tagFiltersList.append(this.#createTagFilterChip(tag, tag));
+    }
+  }
+
+  #createTagFilterChip(tag: string | null, label: string) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "notes-tag-filter";
+    button.textContent = label;
+    button.setAttribute("role", "radio");
+
+    const selected =
+      tag == null ? this.filterTag == null : this.filterTag?.toLowerCase() === tag.toLowerCase();
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-checked", selected ? "true" : "false");
+
+    if (tag == null) {
+      button.dataset.tagAll = "true";
+    } else {
+      button.dataset.tag = tag;
+    }
+
+    return button;
+  }
+
   #listFor(pinned: boolean) {
     return pinned ? this.pinnedList : this.unpinnedList;
   }
@@ -158,10 +285,11 @@ export class NoteActions {
   #syncEmptyState() {
     const hasPinned = this.pinnedList.children.length > 0;
     const hasUnpinned = this.unpinnedList.children.length > 0;
-    const hasNotes = hasPinned || hasUnpinned;
+    const hasVisible = hasPinned || hasUnpinned;
 
-    this.notesEmpty.hidden = hasNotes;
-    this.notesSections.hidden = !hasNotes;
+    this.notesEmpty.hidden = this.#hasAnyNotes;
+    this.notesFilterEmpty.hidden = !(this.#hasAnyNotes && !hasVisible);
+    this.notesSections.hidden = !hasVisible;
     this.pinnedSection.hidden = !hasPinned;
     this.sectionDivider.hidden = !hasPinned;
   }
@@ -174,6 +302,26 @@ export class NoteActions {
     pinBtn.setAttribute("title", pinned ? "Unpin note" : "Pin note");
     pinBtn.setAttribute("aria-label", pinned ? "Unpin note" : "Pin note");
     pinBtn.classList.toggle("is-pinned", pinned);
+  }
+
+  #syncTags(listElement: HTMLElement, tags: string[] | undefined) {
+    const tagsList = listElement.querySelector(".notes-list-item__tags");
+    if (!(tagsList instanceof HTMLElement)) return;
+
+    tagsList.innerHTML = "";
+    const normalized = tags ?? [];
+    tagsList.hidden = normalized.length === 0;
+    listElement.setAttribute("data-tags", formatTagsInput(normalized));
+
+    for (const tag of normalized) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "notes-list-item__tag";
+      button.textContent = tag;
+      button.title = `Filter by ${tag}`;
+      button.setAttribute("aria-label", `Filter by tag ${tag}`);
+      tagsList.append(button);
+    }
   }
 
   #createNoteElement(
@@ -213,6 +361,7 @@ export class NoteActions {
         notesDate.textContent = date;
       }
 
+      this.#syncTags(listElement, note.tags);
       this.#syncPinButton(listElement, Boolean(note.pinned));
 
       if (options.animate) {
@@ -262,6 +411,7 @@ export class NoteActions {
       notesDate.textContent = date;
     }
 
+    this.#syncTags(listElement, note.tags);
     this.#syncPinButton(listElement, Boolean(note.pinned));
   }
 

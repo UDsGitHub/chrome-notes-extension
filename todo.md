@@ -11,5 +11,4 @@
 - [x] add entry and exit animations
 - [x] add drag to reorder
 - [x] add a pinning feature
-- [ ] make title optional and update UI to reflect that
-- [ ] add note groups
+- [x] add tags and search filter

@@ -1,6 +1,6 @@
 import { getNotesST } from "./storage.js";
 import type { Note } from "./types.js";
-import { getSortedNotes } from "./utils.js";
+import { getSortedNotes, normalizeTags, serializeTagsCsv } from "./utils.js";
 
 export async function exportJSON() {
   try {
@@ -13,6 +13,7 @@ export async function exportJSON() {
         id,
         ...noteDetails,
         pinned: Boolean(noteDetails.pinned),
+        tags: normalizeTags(noteDetails.tags),
       }));
     }
 
@@ -33,14 +34,14 @@ export async function exportCSV() {
   try {
     const notes = await getNotesST();
 
-    const csv = ["id,title,content,createdAt,updatedAt,order,pinned"];
+    const csv = ["id,title,content,createdAt,updatedAt,order,pinned,tags"];
     if (notes) {
       const sortedNotes = getSortedNotes(notes);
 
       for (const noteEntry of sortedNotes) {
         const [id, note] = noteEntry;
         csv.push(
-          `"${id}",${escapeText(note.title)},${escapeText(note.content)},${escapeText(note.createdAt)},${escapeText(note.updatedAt ?? "")},${note.order ?? ""},${Boolean(note.pinned)}`,
+          `"${id}",${escapeText(note.title)},${escapeText(note.content)},${escapeText(note.createdAt)},${escapeText(note.updatedAt ?? "")},${note.order ?? ""},${Boolean(note.pinned)},${escapeText(serializeTagsCsv(note.tags))}`,
         );
       }
     }

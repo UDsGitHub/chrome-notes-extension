@@ -74,6 +74,7 @@ describe("storage", () => {
           createdAt: expect.any(String),
           order: 0,
           pinned: false,
+          tags: [],
         },
       });
     });
@@ -92,6 +93,7 @@ describe("storage", () => {
           createdAt: expect.any(String),
           order: 0,
           pinned: false,
+          tags: [],
         },
       });
 
@@ -171,6 +173,22 @@ describe("storage", () => {
       expect(notes?.[pinned!.id]?.order).toBe(0);
       expect(notes?.[unpinned!.id]?.order).toBe(unpinnedOrder);
       expect(notes?.[unpinned!.id]?.pinned).toBe(false);
+    });
+  });
+
+  describe("tags", () => {
+    it("normalizes tags on create and update", async () => {
+      const created = await addNoteST({
+        title: "Tagged",
+        content: "body",
+        tags: [" Work ", "work", "ideas"],
+      });
+      expect(created?.tags).toEqual(["Work", "ideas"]);
+
+      const updated = await updateNoteST(created!.id, {
+        tags: ["personal", "Personal", "home"],
+      });
+      expect(updated?.tags).toEqual(["personal", "home"]);
     });
   });
 

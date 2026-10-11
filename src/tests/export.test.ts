@@ -139,6 +139,7 @@ describe("Export CSV or JSON", () => {
         content: "content",
         createdAt,
         pinned: false,
+        tags: [],
       },
     ]);
   });
@@ -209,8 +210,8 @@ describe("Export CSV or JSON", () => {
     const csv = await lastBlob!.text();
     expect(csv).toBe(
       [
-        "id,title,content,createdAt,updatedAt,order,pinned",
-        `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",0,false`,
+        "id,title,content,createdAt,updatedAt,order,pinned,tags",
+        `"1","Hello, World","And he said ""I am your father...""","${createdAt}","",0,false,""`,
       ].join("\n"),
     );
   });
