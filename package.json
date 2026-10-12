@@ -11,9 +11,16 @@
     "lint": "eslint .",
     "test": "vitest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "chrome-extension",
+    "notes",
+    "side-panel"
+  ],
+  "author": {
+    "name": "Udochukwu Amaefule",
+    "url": "https://github.com/UDsGitHub"
+  },
+  "license": "MIT",
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",

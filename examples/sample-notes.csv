@@ -1,0 +1,5 @@
+id,title,content,createdAt,updatedAt,order,pinned,tags
+"note-sample-pinned-workflow","Weekly planning","Review goals, clear inbox, and pick the top three tasks for the week.","2026-09-10T12:00:00.000Z","2026-09-16T12:00:00.000Z",2,true,"work;planning"
+"note-sample-recipes","Pasta night","Garlic, olive oil, chili flakes, spaghetti. Finish with parsley and parmesan.","2026-09-12T15:30:00.000Z","",1,false,"recipes;personal"
+"note-sample-reading","Reading list","1) Deep Work 2) The Design of Everyday Things 3) Staff Engineer","2026-09-14T09:00:00.000Z","2026-09-20T18:45:00.000Z",0,false,"personal;learning"
+"note-sample-snippet","Clipboard tip","Select text on any page, right-click, and choose ""Save to Notes"" to clip it into the side panel.","2026-09-18T11:20:00.000Z","",3,true,"tips"

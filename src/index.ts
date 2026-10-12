@@ -38,9 +38,7 @@ const notesTagFilters = document.getElementById(
 const notesTagFiltersList = document.getElementById(
   "notes-tag-filters-list",
 ) as HTMLElement;
-const notesListWrapper = document.querySelector<HTMLElement>(
-  ".notes-list__wrapper",
-);
+const notesToaster = document.getElementById("notes-toaster");
 const notesSections = document.querySelector(".notes-sections") as HTMLElement;
 const pinnedSection = document.getElementById("pinned-section") as HTMLElement;
 const sectionDivider = document.getElementById(
@@ -115,7 +113,7 @@ let activeNoteId: string | null = null;
 let pinnedSortable: Sortable | null = null;
 let unpinnedSortable: Sortable | null = null;
 const indicatorTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
-const toaster = new Toaster(notesListWrapper);
+const toaster = new Toaster(notesToaster);
 const isLoading = new Observable<boolean>(false);
 
 const createNotesSortable = (list: HTMLElement, pinned: boolean) => {

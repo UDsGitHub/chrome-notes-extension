@@ -1,0 +1,40 @@
+[
+  {
+    "id": "note-sample-pinned-workflow",
+    "title": "Weekly planning",
+    "content": "Review goals, clear inbox, and pick the top three tasks for the week.",
+    "createdAt": "2026-09-10T12:00:00.000Z",
+    "updatedAt": "2026-09-16T12:00:00.000Z",
+    "order": 2,
+    "pinned": true,
+    "tags": ["work", "planning"]
+  },
+  {
+    "id": "note-sample-recipes",
+    "title": "Pasta night",
+    "content": "Garlic, olive oil, chili flakes, spaghetti. Finish with parsley and parmesan.",
+    "createdAt": "2026-09-12T15:30:00.000Z",
+    "order": 1,
+    "pinned": false,
+    "tags": ["recipes", "personal"]
+  },
+  {
+    "id": "note-sample-reading",
+    "title": "Reading list",
+    "content": "1) Deep Work\n2) The Design of Everyday Things\n3) Staff Engineer",
+    "createdAt": "2026-09-14T09:00:00.000Z",
+    "updatedAt": "2026-09-20T18:45:00.000Z",
+    "order": 0,
+    "pinned": false,
+    "tags": ["personal", "learning"]
+  },
+  {
+    "id": "note-sample-snippet",
+    "title": "Clipboard tip",
+    "content": "Select text on any page, right-click, and choose \"Save to Notes\" to clip it into the side panel.",
+    "createdAt": "2026-09-18T11:20:00.000Z",
+    "order": 3,
+    "pinned": true,
+    "tags": ["tips"]
+  }
+]
