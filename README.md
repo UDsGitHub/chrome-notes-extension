@@ -105,26 +105,74 @@ public/                Side panel HTML, CSS, assets, vendored SortableJS
 src/                   TypeScript source
 dist/                  Compiled JS (generated; run build)
 examples/              Sample import files for demos and screenshots
+reference/             Product screenshots for docs and store listing
 ```
 
-## Chrome Web Store screenshots
+## Screenshots
 
-Use the sample import data so screenshots look populated and consistent. Chrome typically wants **1280×800** or **640×400** PNG/JPEG, up to 5 screenshots.
+Assets live in [`reference/`](reference/). Populate the UI with [`examples/sample-notes.json`](examples/sample-notes.json) before capturing.
 
-Suggested shots (side panel visible; crop or use a clean browser window):
+### Gallery
 
-1. **Overview** — several notes, including pinned section + divider, tag chips, search field  
-2. **Tags / filter** — a tag chip selected (e.g. `work`) so the list is filtered  
-3. **Search** — a query that narrows results (e.g. `pasta` or `planning`)  
-4. **Editing** — a note in edit mode with title, body, and tags filled  
-5. **Import or context menu** — import dialog, **or** a page with text selected and **Save to Notes** in the context menu  
+![Clip Notes overview](reference/screenshot_0_base.png)
 
-Tips:
+*Overview — pinned notes, tag chips, and search*
 
-- Prefer light mode for store tiles unless dark is core to the brand  
-- Hide unrelated bookmarks/toolbars where possible  
-- Keep the panel wide enough that titles, tags, and actions read clearly  
-- Optional: put finished assets under `reference/store/` later (not required for the listing upload)
+![Import dialog](reference/screenshot_1_import_dialog.png)
+
+*Import notes from JSON or CSV*
+
+![Export menu](reference/screenshot_2_export_dialog.png)
+
+*Export as JSON or CSV*
+
+![Search filter](reference/screenshot_3_search_filter.png)
+
+*Debounced search across title, body, and tags*
+
+![Tag chip filter](reference/screenshot_4_chip_filter.png)
+
+*Single-select tag filter chips*
+
+![Edit note](reference/screenshot_5_edit_note.png)
+
+*Edit title, body, and tags*
+
+![Delete all confirmation](reference/screenshot_6_delete_all.png)
+
+*Delete all notes (with confirmation)*
+
+![Import success](reference/screenshot_7_import_success.png)
+
+*Successful import*
+
+![Import warning](reference/screenshot_8_import_warning.png)
+
+*Import skipped existing ids*
+
+![Import validation](reference/screenshot_9_import_validation.png)
+
+*Import validation error*
+
+![Save to Notes context menu](reference/screenshot_10_context_menu.png)
+
+*Right-click selected text → Save to Notes*
+
+### Chrome Web Store (pick 5)
+
+The listing accepts up to **5** screenshots at **1280×800** or **640×400**.
+
+These `reference/` files are tall side-panel captures (~876×1860), so they are great for the README but **won’t upload as-is** to the store. Before publishing, place each chosen shot on a 1280×800 (or 640×400) canvas (centered panel on a simple browser chrome / solid background).
+
+Suggested store set:
+
+1. `screenshot_0_base.png` — what the product is  
+2. `screenshot_4_chip_filter.png` — tags / organization  
+3. `screenshot_3_search_filter.png` — find notes quickly  
+4. `screenshot_5_edit_note.png` — create / edit flow  
+5. `screenshot_10_context_menu.png` — clip from the page  
+
+Keep the rest for docs. Optional later: save store-sized exports under `reference/store/`.
 
 ## Author & license
 
