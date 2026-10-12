@@ -4,16 +4,6 @@ Take simple notes in your browser.
 
 Clip Notes is a Manifest V3 Chrome extension that opens in the side panel. Notes stay on-device in `chrome.storage.local`, with pin, tags, search, drag-to-reorder, and JSON/CSV import & export.
 
-**Name / copy options (for store listing later):**
-
-| Option | One-liner |
-| --- | --- |
-| **Clip Notes** (current) | Take simple notes in your browser |
-| Clip Notes | Capture and organize quick notes beside your tabs |
-| Clip Notes | A lightweight side-panel notebook with tags and pinning |
-
-Recommended for now: keep **Clip Notes** + *Take simple notes in your browser*.
-
 ## Features
 
 - Side panel notebook (opens from the toolbar action)
